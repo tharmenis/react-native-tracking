@@ -1,0 +1,1275 @@
+
+<!doctype html>
+<html lang="en">
+<head><script>(function(){
+  function makeStore(){
+    var data = {};
+    var api = {
+      getItem: function(k){ return Object.prototype.hasOwnProperty.call(data, k) ? data[k] : null; },
+      setItem: function(k, v){ data[k] = String(v); },
+      removeItem: function(k){ delete data[k]; },
+      clear: function(){ data = {}; },
+      key: function(i){ return Object.keys(data)[i] || null; }
+    };
+    Object.defineProperty(api, 'length', { get: function(){ return Object.keys(data).length; } });
+    return api;
+  }
+  function tryShim(name){
+    var works = false;
+    try { works = !!window[name] && typeof window[name].getItem === 'function'; void window[name].length; }
+    catch (_) { works = false; }
+    if (works) return;
+    try { Object.defineProperty(window, name, { configurable: true, value: makeStore() }); }
+    catch (_) { try { window[name] = makeStore(); } catch (__) {} }
+  }
+  tryShim('localStorage');
+  tryShim('sessionStorage');
+})();</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vehicle Tracker — Wireframe Prototype</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --blue-900: #042C53;
+  --blue-800: #0C447C;
+  --blue-600: #185FA5;
+  --blue-400: #378ADD;
+  --blue-200: #85B7EB;
+  --blue-100: #B5D4F4;
+  --blue-50: #E6F1FB;
+  --gray-900: #2C2C2A;
+  --gray-700: #444441;
+  --gray-500: #888780;
+  --gray-200: #D3D1C7;
+  --gray-50: #F1EFE8;
+  --white: #FFFFFF;
+  --active: #185FA5;
+  --idle: #BA7517;
+  --alert: #E24B4A;
+  --off: #888780;
+  --active-bg: #EAF3DE;
+  --idle-bg: #FAEEDA;
+  --alert-bg: #FCEBEB;
+  --off-bg: #F1EFE8;
+  --active-text: #3B6D11;
+  --idle-text: #854F0B;
+  --alert-text: #A32D2D;
+  --off-text: #5F5E5A;
+  --radius-card: 16px;
+  --radius-btn: 12px;
+  --radius-pill: 20px;
+}
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  background: #1a1a2e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+.phone-frame {
+  width: 412px;
+  height: 900px;
+  background: #000;
+  border-radius: 40px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 40px 80px rgba(0,0,0,0.5), inset 0 0 0 2px #333;
+}
+.status-bar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 32px;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  z-index: 100;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--gray-900);
+}
+.status-bar.light { color: var(--white); }
+.punch-hole {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 12px;
+  height: 12px;
+  background: #000;
+  border-radius: 50%;
+  z-index: 101;
+}
+.nav-bar {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.nav-bar .indicator {
+  width: 134px;
+  height: 5px;
+  background: var(--gray-900);
+  border-radius: 3px;
+  opacity: 0.3;
+}
+.screen {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: none;
+  flex-direction: column;
+}
+.screen.active { display: flex; }
+
+/* Drawer */
+.drawer-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 200;
+  display: none;
+}
+.drawer-overlay.open { display: block; }
+.drawer {
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  width: 300px;
+  background: var(--white);
+  z-index: 201;
+  transform: translateX(-100%);
+  transition: transform 0.25s ease;
+  display: flex;
+  flex-direction: column;
+}
+.drawer-overlay.open .drawer { transform: translateX(0); }
+.drawer-header {
+  padding: 48px 20px 20px;
+  border-bottom: 1px solid var(--gray-200);
+}
+.drawer-avatar {
+  width: 48px; height: 48px;
+  background: var(--blue-600);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--white);
+  font-weight: 700;
+  font-size: 16px;
+  margin-bottom: 12px;
+}
+.drawer-name { font-size: 16px; font-weight: 700; color: var(--gray-900); }
+.drawer-role { font-size: 12px; color: var(--gray-500); margin-top: 2px; }
+.drawer-section { padding: 16px 0; }
+.drawer-section-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0 20px 8px;
+}
+.drawer-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 20px;
+  font-size: 14px;
+  color: var(--gray-700);
+  cursor: pointer;
+  border-left: 3px solid transparent;
+}
+.drawer-item:hover { background: var(--gray-50); }
+.drawer-item.active {
+  background: var(--blue-50);
+  color: var(--blue-600);
+  border-left-color: var(--blue-600);
+  font-weight: 600;
+}
+.drawer-item svg { width: 20px; height: 20px; flex-shrink: 0; }
+
+/* Map screen */
+.map-container { position: relative; flex: 1; overflow: hidden; }
+.map-header {
+  position: absolute;
+  top: 36px; left: 16px; right: 16px;
+  display: flex; align-items: center; gap: 12px;
+  z-index: 10;
+}
+.burger-btn {
+  width: 44px; height: 44px;
+  background: var(--white);
+  border: none;
+  border-radius: var(--radius-btn);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  color: var(--gray-900);
+}
+.burger-btn.dark { background: transparent; box-shadow: none; }
+.search-pill {
+  flex: 1;
+  height: 44px;
+  background: var(--white);
+  border-radius: var(--radius-pill);
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  font-size: 14px;
+  color: var(--gray-500);
+}
+.alert-banner {
+  position: absolute;
+  top: 92px; left: 16px; right: 16px;
+  background: var(--alert-bg);
+  border: 1px solid #E24B4A40;
+  border-radius: var(--radius-btn);
+  padding: 10px 14px;
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px;
+  color: var(--alert-text);
+  z-index: 10;
+}
+.alert-dot {
+  width: 8px; height: 8px;
+  background: var(--alert);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.alert-dismiss {
+  margin-left: auto;
+  background: none; border: none;
+  color: var(--alert-text);
+  cursor: pointer;
+  font-size: 14px;
+}
+.stat-bar {
+  position: absolute;
+  bottom: 32px; left: 16px;
+  background: var(--white);
+  border-radius: var(--radius-card);
+  padding: 12px 16px;
+  display: flex; gap: 16px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  z-index: 10;
+}
+.stat-item { display: flex; align-items: center; gap: 6px; }
+.stat-dot { width: 8px; height: 8px; border-radius: 50%; }
+.stat-num { font-size: 14px; font-weight: 700; color: var(--gray-900); }
+.stat-label { font-size: 11px; color: var(--gray-500); }
+.control-stack {
+  position: absolute;
+  bottom: 32px; right: 16px;
+  background: var(--white);
+  border-radius: var(--radius-card);
+  padding: 8px;
+  display: flex; flex-direction: column; gap: 4px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  z-index: 10;
+}
+.ctrl-btn {
+  width: 40px; height: 40px;
+  background: none; border: none;
+  border-radius: var(--radius-btn);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.ctrl-btn:hover { background: var(--blue-50); }
+.ctrl-divider { height: 1px; background: var(--gray-200); margin: 4px 0; }
+
+/* Vehicles screen */
+.vehicles-container {
+  flex: 1;
+  background: var(--gray-50);
+  display: flex;
+  flex-direction: column;
+  padding-top: 32px;
+}
+.vehicles-header {
+  display: flex; align-items: center;
+  padding: 12px 16px;
+  background: var(--white);
+  border-bottom: 1px solid var(--gray-200);
+}
+.vehicles-title {
+  flex: 1;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--blue-900);
+}
+.sort-btn {
+  width: 36px; height: 36px;
+  background: none; border: none;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.filter-tabs {
+  display: flex; gap: 0;
+  background: var(--white);
+  padding: 0 16px;
+  border-bottom: 1px solid var(--gray-200);
+}
+.tab {
+  padding: 12px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gray-500);
+  background: none; border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+}
+.tab.active {
+  color: var(--blue-600);
+  border-bottom-color: var(--blue-600);
+}
+.vehicles-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+.vehicle-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px;
+  background: var(--white);
+  margin: 0 0 1px;
+}
+.vehicle-row.alert-row { background: #FCEBEB20; }
+.v-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.v-info { flex: 1; min-width: 0; }
+.v-name {
+  font-size: 14px; font-weight: 600; color: var(--gray-900);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.v-plate { font-weight: 400; color: var(--gray-500); font-size: 12px; margin-left: 6px; }
+.v-meta { font-size: 12px; color: var(--gray-700); margin-top: 2px; }
+.v-badge {
+  font-size: 11px; font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  flex-shrink: 0;
+}
+.v-badge.active { background: var(--active-bg); color: var(--active-text); }
+.v-badge.idle { background: var(--idle-bg); color: var(--idle-text); }
+.v-badge.alert { background: var(--alert-bg); color: var(--alert-text); }
+.v-badge.off { background: var(--off-bg); color: var(--off-text); }
+.add-vehicle-btn {
+  margin: 16px;
+  padding: 14px;
+  background: var(--blue-600);
+  color: var(--white);
+  border: none;
+  border-radius: var(--radius-btn);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Drivers list */
+.drivers-container {
+  flex: 1;
+  background: var(--gray-50);
+  display: flex;
+  flex-direction: column;
+  padding-top: 32px;
+}
+.driver-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px;
+  background: var(--white);
+  margin: 0 0 1px;
+  cursor: pointer;
+}
+.driver-avatar {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: var(--white);
+  flex-shrink: 0;
+}
+
+/* Driver form */
+.form-container {
+  flex: 1;
+  background: var(--gray-50);
+  display: flex;
+  flex-direction: column;
+  padding-top: 32px;
+}
+.form-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px;
+  background: var(--white);
+  border-bottom: 1px solid var(--gray-200);
+}
+.back-btn {
+  width: 44px; height: 44px;
+  background: none; border: none;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--gray-900);
+}
+.form-title {
+  flex: 1;
+  font-size: 18px; font-weight: 700; color: var(--blue-900);
+}
+.form-body {
+  flex: 1; overflow-y: auto; padding: 16px;
+}
+.form-group { margin-bottom: 16px; }
+.form-label {
+  font-size: 12px; font-weight: 600; color: var(--gray-700);
+  margin-bottom: 6px; display: block;
+}
+.form-input {
+  width: 100%; padding: 12px 14px;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-btn);
+  font-size: 14px; color: var(--gray-900);
+  background: var(--white);
+  font-family: inherit;
+}
+.form-input:focus { outline: none; border-color: var(--blue-400); }
+.form-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23888780' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+.form-row { display: flex; gap: 12px; }
+.form-row .form-group { flex: 1; }
+.form-submit {
+  width: 100%; padding: 14px;
+  background: var(--blue-600); color: var(--white);
+  border: none; border-radius: var(--radius-btn);
+  font-size: 15px; font-weight: 600;
+  cursor: pointer; margin-top: 8px;
+}
+.form-avatar-section {
+  display: flex; align-items: center; gap: 16px;
+  margin-bottom: 20px; padding: 16px;
+  background: var(--white); border-radius: var(--radius-card);
+  border: 1px solid var(--gray-200);
+}
+.form-avatar-lg {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: var(--blue-600);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--white); font-size: 18px; font-weight: 700;
+}
+.form-avatar-edit {
+  font-size: 13px; color: var(--blue-600); font-weight: 500; cursor: pointer;
+}
+
+/* Analytics */
+.analytics-container {
+  flex: 1; background: var(--gray-50);
+  display: flex; flex-direction: column; padding-top: 32px;
+}
+.analytics-header {
+  display: flex; align-items: center; padding: 12px 16px;
+  background: var(--white); border-bottom: 1px solid var(--gray-200);
+}
+.period-selector {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 600; color: var(--blue-600);
+  background: var(--blue-50); border: none; border-radius: var(--radius-pill);
+  padding: 8px 14px; cursor: pointer;
+}
+.export-btn {
+  width: 36px; height: 36px; background: none; border: none;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.analytics-body { flex: 1; overflow-y: auto; padding: 16px; }
+.kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+.kpi-card {
+  background: var(--white); border-radius: var(--radius-card);
+  border: 1px solid var(--gray-200); padding: 14px;
+}
+.kpi-label { font-size: 11px; color: var(--gray-500); font-weight: 500; margin-bottom: 4px; }
+.kpi-value { font-size: 22px; font-weight: 700; color: var(--blue-900); }
+.kpi-delta { font-size: 11px; font-weight: 600; margin-top: 4px; display: flex; align-items: center; gap: 3px; }
+.kpi-delta.up { color: var(--active-text); }
+.kpi-delta.down { color: var(--alert-text); }
+.kpi-delta.neutral { color: var(--gray-500); }
+.section-title { font-size: 14px; font-weight: 700; color: var(--blue-900); margin-bottom: 12px; }
+.chart-container {
+  background: var(--white); border-radius: var(--radius-card);
+  border: 1px solid var(--gray-200); padding: 16px; margin-bottom: 20px;
+}
+.bar-chart { display: flex; align-items: flex-end; gap: 8px; height: 120px; padding-top: 8px; }
+.bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.bar {
+  width: 100%; border-radius: 4px 4px 0 0; background: var(--blue-200);
+  transition: background 0.2s;
+}
+.bar.highlight { background: var(--blue-600); }
+.bar-label { font-size: 10px; color: var(--gray-500); }
+.alert-tiles { display: flex; gap: 10px; flex-wrap: wrap; }
+.alert-tile {
+  flex: 1; min-width: 100px;
+  padding: 12px; border-radius: var(--radius-btn);
+  display: flex; flex-direction: column; gap: 4px;
+}
+.alert-tile-count { font-size: 20px; font-weight: 700; }
+.alert-tile-label { font-size: 11px; font-weight: 500; }
+
+/* Alerts Center */
+.alert-row-item {
+  display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px;
+  background: var(--white); margin: 0 0 1px;
+}
+.alert-row-item.read { opacity: 0.55; }
+.alert-icon-tile {
+  width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.alert-icon-tile.danger { background: var(--alert-bg); color: var(--alert); }
+.alert-icon-tile.warning { background: var(--idle-bg); color: var(--idle); }
+.alert-icon-tile.info { background: var(--blue-50); color: var(--blue-600); }
+.alert-icon-tile.success { background: var(--active-bg); color: #639922; }
+.alert-content { flex: 1; min-width: 0; }
+.alert-title-text { font-size: 14px; font-weight: 600; color: var(--gray-900); }
+.alert-subtitle { font-size: 12px; color: var(--gray-700); margin-top: 2px; }
+.alert-time { font-size: 11px; color: var(--gray-500); margin-top: 4px; }
+.unread-dot { width: 8px; height: 8px; background: var(--blue-600); border-radius: 50%; flex-shrink: 0; margin-top: 6px; }
+.drawer-badge { margin-left: auto; background: var(--alert); color: var(--white); font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 10px; }
+
+/* Trip History */
+.trip-pills { display: flex; gap: 8px; padding: 12px 16px; background: var(--white); border-bottom: 1px solid var(--gray-200); }
+.pill { padding: 8px 14px; font-size: 12px; font-weight: 600; border-radius: var(--radius-pill); border: 1px solid var(--gray-200); background: var(--white); color: var(--gray-700); cursor: pointer; }
+.pill.active { background: var(--blue-600); color: var(--white); border-color: var(--blue-600); }
+.trip-card { background: var(--white); margin: 8px 16px; border-radius: var(--radius-card); border: 1px solid var(--gray-200); padding: 14px; cursor: pointer; }
+.trip-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.trip-card-title { font-size: 14px; font-weight: 600; color: var(--gray-900); }
+.trip-card-id { font-size: 11px; color: var(--gray-500); }
+.trip-route { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.trip-route-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.trip-route-line { flex: 1; height: 2px; background: var(--blue-200); }
+.trip-route-line.dashed { background: none; border-top: 2px dashed var(--idle); }
+.trip-route-label { font-size: 12px; color: var(--gray-700); }
+.trip-stats { display: flex; gap: 16px; }
+.trip-stat { font-size: 12px; color: var(--gray-500); }
+.trip-stat strong { color: var(--gray-900); font-weight: 600; }
+
+/* Trip Detail */
+.trip-detail-container { flex: 1; background: var(--gray-50); display: flex; flex-direction: column; padding-top: 32px; }
+.trip-detail-header { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--white); border-bottom: 1px solid var(--gray-200); }
+.trip-detail-body { flex: 1; overflow-y: auto; }
+.trip-mini-map { height: 160px; background: #dce8f5; position: relative; overflow: hidden; }
+.trip-mini-map svg { width: 100%; height: 100%; }
+.replay-btn { position: absolute; bottom: 12px; right: 12px; padding: 8px 14px; background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius-btn); font-size: 12px; font-weight: 600; color: var(--blue-600); cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+.trip-stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 16px; }
+.trip-stat-card { background: var(--white); border-radius: var(--radius-btn); border: 1px solid var(--gray-200); padding: 12px; }
+.trip-stat-card-label { font-size: 11px; color: var(--gray-500); margin-bottom: 2px; }
+.trip-stat-card-value { font-size: 18px; font-weight: 700; color: var(--blue-900); }
+.trip-stat-card-value.over-limit { color: var(--alert); }
+.timeline { padding: 0 16px 16px; }
+.timeline-item { display: flex; gap: 12px; position: relative; padding-bottom: 16px; }
+.timeline-item:not(:last-child)::before { content: ''; position: absolute; left: 11px; top: 24px; bottom: 0; width: 2px; background: var(--gray-200); }
+.timeline-dot { width: 24px; height: 24px; border-radius: 50%; background: var(--blue-50); border: 2px solid var(--blue-200); display: flex; align-items: center; justify-content: center; flex-shrink: 0; z-index: 1; }
+.timeline-dot.start { background: var(--active-bg); border-color: #639922; }
+.timeline-dot.end { background: var(--blue-50); border-color: var(--blue-600); }
+.timeline-info { flex: 1; }
+.timeline-place { font-size: 13px; font-weight: 600; color: var(--gray-900); }
+.timeline-meta { font-size: 11px; color: var(--gray-500); margin-top: 2px; }
+.events-log { padding: 0 16px 16px; }
+.event-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--gray-200); }
+.event-item:last-child { border-bottom: none; }
+.event-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.event-text { font-size: 12px; color: var(--gray-700); flex: 1; }
+.event-time { font-size: 11px; color: var(--gray-500); }
+
+/* Vehicle Detail */
+.login-container { flex: 1; background: var(--white); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 24px; padding-top: 60px; }
+.login-logo { width: 64px; height: 64px; background: var(--blue-600); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin-bottom: 24px; }
+.login-title { font-size: 22px; font-weight: 700; color: var(--blue-900); margin-bottom: 4px; }
+.login-subtitle { font-size: 14px; color: var(--gray-500); margin-bottom: 32px; }
+.login-form { width: 100%; }
+.login-form .form-group { margin-bottom: 16px; }
+.login-form .form-input { border: 1px solid var(--gray-200); }
+.login-forgot { font-size: 12px; color: var(--blue-600); text-align: right; margin-top: -8px; margin-bottom: 20px; cursor: pointer; }
+.login-btn { width: 100%; padding: 14px; background: var(--blue-600); color: var(--white); border: none; border-radius: var(--radius-btn); font-size: 15px; font-weight: 600; cursor: pointer; }
+.login-footer { margin-top: 24px; font-size: 13px; color: var(--gray-500); }
+.login-footer a { color: var(--blue-600); font-weight: 600; text-decoration: none; }
+.drawer-footer { margin-top: auto; padding: 16px 0; border-top: 1px solid var(--gray-200); }
+.vd-hero { background: var(--blue-600); padding: 20px 16px 16px; display: flex; align-items: center; gap: 14px; }
+.vd-icon { width: 48px; height: 48px; background: rgba(255,255,255,0.15); border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+.vd-hero-info { flex: 1; }
+.vd-hero-name { font-size: 18px; font-weight: 700; color: var(--white); }
+.vd-hero-sub { font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 2px; }
+.vd-rows { padding: 0; }
+.vd-row { display: flex; align-items: center; padding: 14px 16px; background: var(--white); border-bottom: 1px solid var(--gray-200); }
+.vd-row-label { font-size: 12px; color: var(--gray-500); width: 100px; flex-shrink: 0; }
+.vd-row-value { font-size: 14px; font-weight: 500; color: var(--gray-900); flex: 1; }
+.vd-row-value.danger { color: var(--alert); font-weight: 700; }
+.vd-actions { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; padding: 16px; }
+.vd-action { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 8px; background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius-btn); cursor: pointer; }
+.vd-action svg { color: var(--blue-600); }
+.vd-action-label { font-size: 11px; font-weight: 600; color: var(--gray-700); }
+</style>
+</head>
+<body>
+<div class="phone-frame">
+  <div class="punch-hole"></div>
+
+  <!-- SCREEN 0: Login -->
+  <div class="screen active" id="screen-login" data-screen-label="00 Login">
+    <div class="status-bar"><span>9:41</span><span>⦿ ▮▮▮</span></div>
+    <div class="login-container">
+      <div class="login-logo"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg></div>
+      <div class="login-title">FleetTrack</div>
+      <div class="login-subtitle">Sign in to manage your fleet</div>
+      <div class="login-form">
+        <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" placeholder="alice@savanna.co.ke" value="alice@savanna.co.ke"></div>
+        <div class="form-group"><label class="form-label">Password</label><input class="form-input" type="password" placeholder="••••••••" value="••••••••"></div>
+        <div class="login-forgot">Forgot password?</div>
+        <button class="login-btn" onclick="showScreen('screen-map')">Sign In</button>
+      </div>
+      <div class="login-footer">Don't have an account? <a href="#">Contact admin</a></div>
+    </div>
+  </div>
+
+  <!-- SCREEN 1: Live Map -->
+  <div class="screen" id="screen-map" data-screen-label="01 Live Map">
+    <div class="status-bar light">
+      <span>9:41</span>
+      <span>⦿ ▮▮▮</span>
+    </div>
+    <div class="map-container">
+      <svg viewBox="0 0 412 900" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" style="position:absolute;inset:0;">
+        <rect fill="#dce8f5" width="412" height="900"/>
+        <path d="M0 300 Q100 280 200 320 Q300 360 412 340" stroke="#fff" stroke-width="8" fill="none"/>
+        <path d="M0 500 Q150 480 250 520 Q350 540 412 510" stroke="#fff" stroke-width="6" fill="none"/>
+        <path d="M180 0 Q190 200 200 400 Q210 600 220 900" stroke="#fff" stroke-width="7" fill="none"/>
+        <path d="M350 0 Q340 300 330 500 Q320 700 310 900" stroke="#fff" stroke-width="5" fill="none"/>
+        <rect x="40" y="180" width="100" height="80" rx="4" fill="#c8ddf0" opacity="0.6"/>
+        <rect x="250" y="400" width="120" height="90" rx="4" fill="#c8ddf0" opacity="0.6"/>
+        <rect x="60" y="550" width="90" height="70" rx="4" fill="#c8ddf0" opacity="0.6"/>
+        <rect x="280" y="650" width="80" height="100" rx="4" fill="#c8ddf0" opacity="0.6"/>
+        <ellipse cx="320" cy="200" rx="50" ry="40" fill="#d4e8d0" opacity="0.5"/>
+        <ellipse cx="100" cy="700" rx="60" ry="45" fill="#d4e8d0" opacity="0.5"/>
+        <g transform="translate(180,310)"><circle r="14" fill="#185FA5" stroke="#fff" stroke-width="3"/><circle r="5" fill="#fff"/></g>
+        <g transform="translate(300,480)"><circle r="12" fill="#BA7517" stroke="#fff" stroke-width="3"/><circle r="4" fill="#fff"/></g>
+        <g transform="translate(120,620)"><circle r="12" fill="#E24B4A" stroke="#fff" stroke-width="3"/><circle r="4" fill="#fff"/></g>
+        <g transform="translate(350,300)"><circle r="10" fill="#185FA5" stroke="#fff" stroke-width="2"/><circle r="3" fill="#fff"/></g>
+        <g transform="translate(80,400)"><circle r="10" fill="#888780" stroke="#fff" stroke-width="2"/><circle r="3" fill="#fff"/></g>
+      </svg>
+      <div class="map-header">
+        <button class="burger-btn" onclick="toggleDrawer()">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <div class="search-pill">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888780" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <span>Search vehicles, drivers…</span>
+        </div>
+      </div>
+      <div class="alert-banner">
+        <span class="alert-dot"></span>
+        <span>2 vehicles exceeding speed limit</span>
+        <button class="alert-dismiss">✕</button>
+      </div>
+      <div class="stat-bar">
+        <div class="stat-item"><span class="stat-dot" style="background:var(--active)"></span><span class="stat-num">12</span><span class="stat-label">Active</span></div>
+        <div class="stat-item"><span class="stat-dot" style="background:var(--alert)"></span><span class="stat-num">2</span><span class="stat-label">Alerts</span></div>
+        <div class="stat-item"><span class="stat-dot" style="background:var(--idle)"></span><span class="stat-num">5</span><span class="stat-label">Idle</span></div>
+        <div class="stat-item"><span class="stat-dot" style="background:var(--off)"></span><span class="stat-num">3</span><span class="stat-label">Off</span></div>
+      </div>
+      <div class="control-stack">
+        <button class="ctrl-btn" title="Filter by driver"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue-600)" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a6.5 6.5 0 0113 0"/></svg></button>
+        <button class="ctrl-btn" title="Filter by vehicle"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue-600)" stroke-width="2"><rect x="3" y="11" width="18" height="7" rx="2"/><circle cx="7.5" cy="18" r="2"/><circle cx="16.5" cy="18" r="2"/><path d="M5 11V8a2 2 0 012-2h10a2 2 0 012 2v3"/></svg></button>
+        <div class="ctrl-divider"></div>
+        <button class="ctrl-btn" title="Zoom in"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue-600)" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+        <button class="ctrl-btn" title="Zoom out"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue-600)" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+        <button class="ctrl-btn" title="Layers"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue-600)" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 2: Vehicles List -->
+  <div class="screen" id="screen-vehicles" data-screen-label="02 Vehicles List">
+    <div class="status-bar">
+      <span>9:41</span>
+      <span>⦿ ▮▮▮</span>
+    </div>
+    <div class="vehicles-container">
+      <div class="vehicles-header">
+        <button class="burger-btn dark" onclick="toggleDrawer()">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <h1 class="vehicles-title">Vehicles</h1>
+        <button class="sort-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gray-700)" stroke-width="2"><path d="M3 6h18M6 12h12M9 18h6"/></svg></button>
+      </div>
+      <div class="filter-tabs">
+        <button class="tab active">All (22)</button>
+        <button class="tab">Active (12)</button>
+        <button class="tab">Idle (5)</button>
+      </div>
+      <div class="vehicles-list">
+        <div class="vehicle-row alert-row" onclick="showScreen('screen-vehicle-detail')" style="cursor:pointer">
+          <span class="v-dot" style="background:var(--alert)"></span>
+          <div class="v-info"><div class="v-name">Toyota Hilux <span class="v-plate">KBA 234F</span></div><div class="v-meta">James Mwangi · 112 km/h</div></div>
+          <span class="v-badge alert">Speeding</span>
+        </div>
+        <div class="vehicle-row alert-row">
+          <span class="v-dot" style="background:var(--alert)"></span>
+          <div class="v-info"><div class="v-name">Isuzu FRR <span class="v-plate">KCG 891J</span></div><div class="v-meta">Peter Ochieng · Geofence exit</div></div>
+          <span class="v-badge alert">Alert</span>
+        </div>
+        <div class="vehicle-row">
+          <span class="v-dot" style="background:var(--active)"></span>
+          <div class="v-info"><div class="v-name">Mitsubishi Canter <span class="v-plate">KDD 102G</span></div><div class="v-meta">Sarah Wanjiku · 78 km/h</div></div>
+          <span class="v-badge active">Active</span>
+        </div>
+        <div class="vehicle-row">
+          <span class="v-dot" style="background:var(--active)"></span>
+          <div class="v-info"><div class="v-name">Ford Ranger <span class="v-plate">KBZ 445D</span></div><div class="v-meta">David Kimani · 65 km/h</div></div>
+          <span class="v-badge active">Active</span>
+        </div>
+        <div class="vehicle-row">
+          <span class="v-dot" style="background:var(--active)"></span>
+          <div class="v-info"><div class="v-name">Nissan NP300 <span class="v-plate">KCA 778E</span></div><div class="v-meta">Grace Akinyi · 54 km/h</div></div>
+          <span class="v-badge active">Active</span>
+        </div>
+        <div class="vehicle-row">
+          <span class="v-dot" style="background:var(--idle)"></span>
+          <div class="v-info"><div class="v-name">Toyota Dyna <span class="v-plate">KBH 556C</span></div><div class="v-meta">John Otieno · Idle 42 min</div></div>
+          <span class="v-badge idle">Idle</span>
+        </div>
+        <div class="vehicle-row">
+          <span class="v-dot" style="background:var(--idle)"></span>
+          <div class="v-info"><div class="v-name">Hino 300 <span class="v-plate">KCB 223H</span></div><div class="v-meta">Mary Njeri · Idle 1h 15m</div></div>
+          <span class="v-badge idle">Idle</span>
+        </div>
+        <div class="vehicle-row">
+          <span class="v-dot" style="background:var(--off)"></span>
+          <div class="v-info"><div class="v-name">Tata LPT <span class="v-plate">KDA 901B</span></div><div class="v-meta">Unassigned · At depot</div></div>
+          <span class="v-badge off">Parked</span>
+        </div>
+      </div>
+      <button class="add-vehicle-btn">+ Add Vehicle</button>
+    </div>
+  </div>
+
+  <!-- SCREEN 3: Drivers List -->
+  <div class="screen" id="screen-drivers" data-screen-label="03 Drivers List">
+    <div class="status-bar"><span>9:41</span><span>⦿ ▮▮▮</span></div>
+    <div class="drivers-container">
+      <div class="vehicles-header">
+        <button class="burger-btn dark" onclick="toggleDrawer()">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <h1 class="vehicles-title">Drivers</h1>
+        <button class="sort-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gray-700)" stroke-width="2"><path d="M3 6h18M6 12h12M9 18h6"/></svg></button>
+      </div>
+      <div class="filter-tabs">
+        <button class="tab active">All (8)</button>
+        <button class="tab">On duty (6)</button>
+        <button class="tab">Off (2)</button>
+      </div>
+      <div class="vehicles-list">
+        <div class="driver-row" onclick="showScreen('screen-driver-edit')">
+          <div class="driver-avatar" style="background:var(--blue-800)">JM</div>
+          <div class="v-info"><div class="v-name">James Mwangi</div><div class="v-meta">Toyota Hilux · Nairobi–Mombasa · 112 km/h</div></div>
+          <span class="v-badge alert">Alert</span>
+        </div>
+        <div class="driver-row">
+          <div class="driver-avatar" style="background:var(--blue-600)">PO</div>
+          <div class="v-info"><div class="v-name">Peter Ochieng</div><div class="v-meta">Isuzu FRR · Kisumu–Eldoret · Geofence</div></div>
+          <span class="v-badge alert">Alert</span>
+        </div>
+        <div class="driver-row">
+          <div class="driver-avatar" style="background:var(--blue-400)">SW</div>
+          <div class="v-info"><div class="v-name">Sarah Wanjiku</div><div class="v-meta">Mitsubishi Canter · Thika Rd · 78 km/h</div></div>
+          <span class="v-badge active">Active</span>
+        </div>
+        <div class="driver-row">
+          <div class="driver-avatar" style="background:var(--blue-800)">DK</div>
+          <div class="v-info"><div class="v-name">David Kimani</div><div class="v-meta">Ford Ranger · Nakuru–Naivasha · 65 km/h</div></div>
+          <span class="v-badge active">Active</span>
+        </div>
+        <div class="driver-row">
+          <div class="driver-avatar" style="background:var(--blue-600)">GA</div>
+          <div class="v-info"><div class="v-name">Grace Akinyi</div><div class="v-meta">Nissan NP300 · Mombasa Rd · 54 km/h</div></div>
+          <span class="v-badge active">Active</span>
+        </div>
+        <div class="driver-row">
+          <div class="driver-avatar" style="background:var(--blue-400)">JO</div>
+          <div class="v-info"><div class="v-name">John Otieno</div><div class="v-meta">Toyota Dyna · Idle 42 min</div></div>
+          <span class="v-badge idle">Idle</span>
+        </div>
+        <div class="driver-row">
+          <div class="driver-avatar" style="background:var(--blue-800)">MN</div>
+          <div class="v-info"><div class="v-name">Mary Njeri</div><div class="v-meta">Hino 300 · Idle 1h 15m</div></div>
+          <span class="v-badge idle">Idle</span>
+        </div>
+        <div class="driver-row">
+          <div class="driver-avatar" style="background:var(--off)">FK</div>
+          <div class="v-info"><div class="v-name">Francis Kipchoge</div><div class="v-meta">Unassigned · Off duty</div></div>
+          <span class="v-badge off">Off</span>
+        </div>
+      </div>
+      <button class="add-vehicle-btn" onclick="showScreen('screen-driver-create')">+ Add Driver</button>
+    </div>
+  </div>
+
+  <!-- SCREEN 4: Create/Edit Driver -->
+  <div class="screen" id="screen-driver-create" data-screen-label="04 Create Driver">
+    <div class="status-bar"><span>9:41</span><span>⦿ ▮▮▮</span></div>
+    <div class="form-container">
+      <div class="form-header">
+        <button class="back-btn" onclick="showScreen('screen-drivers')">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+        </button>
+        <h1 class="form-title">Add Driver</h1>
+      </div>
+      <div class="form-body">
+        <div class="form-avatar-section">
+          <div class="form-avatar-lg">?</div>
+          <div><div style="font-size:14px;font-weight:600;color:var(--gray-900)">Photo</div><div class="form-avatar-edit">Upload photo</div></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">First name</label><input class="form-input" placeholder="e.g. James"></div>
+          <div class="form-group"><label class="form-label">Last name</label><input class="form-input" placeholder="e.g. Mwangi"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Phone number</label><input class="form-input" placeholder="+254 7XX XXX XXX"></div>
+        <div class="form-group"><label class="form-label">License number</label><input class="form-input" placeholder="e.g. DL-2024-08123"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">License class</label><select class="form-input form-select"><option>BCE</option><option>C</option><option>D</option></select></div>
+          <div class="form-group"><label class="form-label">Expiry date</label><input class="form-input" placeholder="DD/MM/YYYY"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Assigned vehicle</label><select class="form-input form-select"><option value="">Select vehicle…</option><option>Toyota Hilux — KBA 234F</option><option>Isuzu FRR — KCG 891J</option><option>Mitsubishi Canter — KDD 102G</option><option>Ford Ranger — KBZ 445D</option></select></div>
+        <div class="form-group"><label class="form-label">Route</label><input class="form-input" placeholder="e.g. Nairobi–Mombasa"></div>
+        <button class="form-submit">Save Driver</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 5: Edit Driver -->
+  <div class="screen" id="screen-driver-edit" data-screen-label="05 Edit Driver">
+    <div class="status-bar"><span>9:41</span><span>⦿ ▮▮▮</span></div>
+    <div class="form-container">
+      <div class="form-header">
+        <button class="back-btn" onclick="showScreen('screen-drivers')">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+        </button>
+        <h1 class="form-title">Edit Driver</h1>
+      </div>
+      <div class="form-body">
+        <div class="form-avatar-section">
+          <div class="form-avatar-lg" style="background:var(--blue-800)">JM</div>
+          <div><div style="font-size:14px;font-weight:600;color:var(--gray-900)">James Mwangi</div><div class="form-avatar-edit">Change photo</div></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">First name</label><input class="form-input" value="James"></div>
+          <div class="form-group"><label class="form-label">Last name</label><input class="form-input" value="Mwangi"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Phone number</label><input class="form-input" value="+254 722 345 678"></div>
+        <div class="form-group"><label class="form-label">License number</label><input class="form-input" value="DL-2019-04521"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">License class</label><select class="form-input form-select"><option selected>BCE</option><option>C</option><option>D</option></select></div>
+          <div class="form-group"><label class="form-label">Expiry date</label><input class="form-input" value="15/03/2026"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Assigned vehicle</label><select class="form-input form-select"><option>Toyota Hilux — KBA 234F</option><option>Isuzu FRR — KCG 891J</option><option>Mitsubishi Canter — KDD 102G</option></select></div>
+        <div class="form-group"><label class="form-label">Route</label><input class="form-input" value="Nairobi–Mombasa"></div>
+        <button class="form-submit">Update Driver</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 6: Analytics Dashboard -->
+  <div class="screen" id="screen-analytics" data-screen-label="06 Analytics Dashboard">
+    <div class="status-bar"><span>9:41</span><span>⦿ ▮▮▮</span></div>
+    <div class="analytics-container">
+      <div class="analytics-header">
+        <button class="burger-btn dark" onclick="toggleDrawer()">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <h1 class="vehicles-title">Analytics</h1>
+        <button class="period-selector">This week <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></button>
+        <button class="export-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gray-700)" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></button>
+      </div>
+      <div class="analytics-body">
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-label">Total Distance</div>
+            <div class="kpi-value">4,832 km</div>
+            <div class="kpi-delta up">↑ 12% vs last week</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Completed Trips</div>
+            <div class="kpi-value">67</div>
+            <div class="kpi-delta up">↑ 8% vs last week</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Avg Fleet Speed</div>
+            <div class="kpi-value">58 km/h</div>
+            <div class="kpi-delta neutral">— same as last week</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Total Alerts</div>
+            <div class="kpi-value">14</div>
+            <div class="kpi-delta down">↑ 3 more than last week</div>
+          </div>
+        </div>
+
+        <div class="section-title">Daily Distance (km)</div>
+        <div class="chart-container">
+          <div class="bar-chart">
+            <div class="bar-col"><div class="bar" style="height:55%"></div><span class="bar-label">Mon</span></div>
+            <div class="bar-col"><div class="bar" style="height:72%"></div><span class="bar-label">Tue</span></div>
+            <div class="bar-col"><div class="bar highlight" style="height:90%"></div><span class="bar-label">Wed</span></div>
+            <div class="bar-col"><div class="bar" style="height:65%"></div><span class="bar-label">Thu</span></div>
+            <div class="bar-col"><div class="bar" style="height:80%"></div><span class="bar-label">Fri</span></div>
+            <div class="bar-col"><div class="bar" style="height:40%"></div><span class="bar-label">Sat</span></div>
+            <div class="bar-col"><div class="bar" style="height:25%"></div><span class="bar-label">Sun</span></div>
+          </div>
+        </div>
+
+        <div class="section-title">Alert Breakdown</div>
+        <div class="alert-tiles">
+          <div class="alert-tile" style="background:var(--alert-bg)">
+            <div class="alert-tile-count" style="color:var(--alert-text)">7</div>
+            <div class="alert-tile-label" style="color:var(--alert-text)">Speeding</div>
+          </div>
+          <div class="alert-tile" style="background:var(--idle-bg)">
+            <div class="alert-tile-count" style="color:var(--idle-text)">4</div>
+            <div class="alert-tile-label" style="color:var(--idle-text)">Long idle</div>
+          </div>
+          <div class="alert-tile" style="background:var(--blue-50)">
+            <div class="alert-tile-count" style="color:var(--blue-800)">3</div>
+            <div class="alert-tile-label" style="color:var(--blue-800)">Geofence</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 7: Alerts Center -->
+  <div class="screen" id="screen-alerts" data-screen-label="07 Alerts Center">
+    <div class="status-bar"><span>9:41</span><span>⦿ ▮▮▮</span></div>
+    <div class="vehicles-container">
+      <div class="vehicles-header">
+        <button class="burger-btn dark" onclick="toggleDrawer()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+        <h1 class="vehicles-title">Alerts</h1>
+      </div>
+      <div class="filter-tabs">
+        <button class="tab active">All (14)</button>
+        <button class="tab">Unread (5)</button>
+        <button class="tab">Critical (4)</button>
+      </div>
+      <div class="vehicles-list">
+        <div class="alert-row-item">
+          <div class="alert-icon-tile danger"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4"/><circle cx="12" cy="17" r="1"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg></div>
+          <div class="alert-content"><div class="alert-title-text">Speeding — 112 km/h</div><div class="alert-subtitle">Toyota Hilux · James Mwangi · Mombasa Rd</div><div class="alert-time">2 min ago</div></div>
+          <div class="unread-dot"></div>
+        </div>
+        <div class="alert-row-item">
+          <div class="alert-icon-tile danger"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9l6 6"/><path d="M15 9l-6 6"/></svg></div>
+          <div class="alert-content"><div class="alert-title-text">Geofence exit</div><div class="alert-subtitle">Isuzu FRR · Peter Ochieng · Left Kisumu zone</div><div class="alert-time">8 min ago</div></div>
+          <div class="unread-dot"></div>
+        </div>
+        <div class="alert-row-item">
+          <div class="alert-icon-tile danger"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4"/><circle cx="12" cy="17" r="1"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg></div>
+          <div class="alert-content"><div class="alert-title-text">Speeding — 98 km/h</div><div class="alert-subtitle">Ford Ranger · David Kimani · Nakuru bypass</div><div class="alert-time">14 min ago</div></div>
+          <div class="unread-dot"></div>
+        </div>
+        <div class="alert-row-item">
+          <div class="alert-icon-tile warning"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+          <div class="alert-content"><div class="alert-title-text">Long idle — 1h 15m</div><div class="alert-subtitle">Hino 300 · Mary Njeri · Industrial Area</div><div class="alert-time">22 min ago</div></div>
+          <div class="unread-dot"></div>
+        </div>
+        <div class="alert-row-item">
+          <div class="alert-icon-tile warning"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 22l2-2"/><path d="M12 17a5 5 0 000-10"/><path d="M12 2v5"/><path d="M5.5 5.5l3.5 3.5"/></svg></div>
+          <div class="alert-content"><div class="alert-title-text">Low fuel — 12%</div><div class="alert-subtitle">Toyota Dyna · John Otieno · Thika Rd</div><div class="alert-time">35 min ago</div></div>
+          <div class="unread-dot"></div>
+        </div>
+        <div class="alert-row-item read">
+          <div class="alert-icon-tile danger"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4"/><circle cx="12" cy="17" r="1"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg></div>
+          <div class="alert-content"><div class="alert-title-text">Speeding — 105 km/h</div><div class="alert-subtitle">Nissan NP300 · Grace Akinyi · Mombasa Rd</div><div class="alert-time">1h ago</div></div>
+        </div>
+        <div class="alert-row-item read">
+          <div class="alert-icon-tile warning"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+          <div class="alert-content"><div class="alert-title-text">Long idle — 48 min</div><div class="alert-subtitle">Toyota Dyna · John Otieno · Westlands</div><div class="alert-time">2h ago</div></div>
+        </div>
+        <div class="alert-row-item read">
+          <div class="alert-icon-tile info"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 8v8"/><path d="M8 12h8"/></svg></div>
+          <div class="alert-content"><div class="alert-title-text">Geofence entry</div><div class="alert-subtitle">Mitsubishi Canter · Sarah Wanjiku · Nairobi depot</div><div class="alert-time">3h ago</div></div>
+        </div>
+        <div class="alert-row-item read">
+          <div class="alert-icon-tile success"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg></div>
+          <div class="alert-content"><div class="alert-title-text">Trip completed</div><div class="alert-subtitle">Ford Ranger · David Kimani · Nakuru–Naivasha</div><div class="alert-time">4h ago</div></div>
+        </div>
+        <div class="alert-row-item read">
+          <div class="alert-icon-tile success"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg></div>
+          <div class="alert-content"><div class="alert-title-text">Trip completed</div><div class="alert-subtitle">Nissan NP300 · Grace Akinyi · Mombasa–Nairobi</div><div class="alert-time">5h ago</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 8: Trip History List -->
+  <div class="screen" id="screen-trips" data-screen-label="08 Trip History">
+    <div class="status-bar"><span>9:41</span><span>⦿ ▮▮▮</span></div>
+    <div class="vehicles-container">
+      <div class="vehicles-header">
+        <button class="burger-btn dark" onclick="toggleDrawer()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+        <h1 class="vehicles-title">Trips</h1>
+        <button class="export-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gray-700)" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg></button>
+      </div>
+      <div class="trip-pills">
+        <button class="pill active">Today</button>
+        <button class="pill">Yesterday</button>
+        <button class="pill">This week</button>
+      </div>
+      <div class="vehicles-list" style="padding:0">
+        <div class="trip-card" onclick="showScreen('screen-trip-detail')">
+          <div class="trip-card-header"><span class="trip-card-title">Toyota Hilux</span><span class="trip-card-id">TRP-2471</span></div>
+          <div class="trip-route">
+            <span class="trip-route-dot" style="background:var(--blue-600)"></span>
+            <span class="trip-route-label">Nairobi</span>
+            <span class="trip-route-line dashed"></span>
+            <span class="trip-route-label">Mombasa</span>
+            <span class="trip-route-dot" style="background:var(--idle)"></span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div class="trip-stats">
+              <span class="trip-stat"><strong>482 km</strong></span>
+              <span class="trip-stat"><strong>5h 12m</strong></span>
+              <span class="trip-stat"><strong>93 km/h</strong></span>
+            </div>
+            <span class="v-badge idle">In progress</span>
+          </div>
+        </div>
+        <div class="trip-card" onclick="showScreen('screen-trip-detail')">
+          <div class="trip-card-header"><span class="trip-card-title">Mitsubishi Canter</span><span class="trip-card-id">TRP-2470</span></div>
+          <div class="trip-route">
+            <span class="trip-route-dot" style="background:#639922"></span>
+            <span class="trip-route-label">Nairobi</span>
+            <span class="trip-route-line"></span>
+            <span class="trip-route-label">Nakuru</span>
+            <span class="trip-route-dot" style="background:#639922"></span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div class="trip-stats">
+              <span class="trip-stat"><strong>158 km</strong></span>
+              <span class="trip-stat"><strong>2h 34m</strong></span>
+              <span class="trip-stat"><strong>62 km/h</strong></span>
+            </div>
+            <span class="v-badge active">Completed</span>
+          </div>
+        </div>
+        <div class="trip-card" onclick="showScreen('screen-trip-detail')">
+          <div class="trip-card-header"><span class="trip-card-title">Ford Ranger</span><span class="trip-card-id">TRP-2469</span></div>
+          <div class="trip-route">
+            <span class="trip-route-dot" style="background:#639922"></span>
+            <span class="trip-route-label">Nakuru</span>
+            <span class="trip-route-line"></span>
+            <span class="trip-route-label">Naivasha</span>
+            <span class="trip-route-dot" style="background:#639922"></span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div class="trip-stats">
+              <span class="trip-stat"><strong>72 km</strong></span>
+              <span class="trip-stat"><strong>1h 05m</strong></span>
+              <span class="trip-stat"><strong>66 km/h</strong></span>
+            </div>
+            <span class="v-badge active">Completed</span>
+          </div>
+        </div>
+        <div class="trip-card" onclick="showScreen('screen-trip-detail')">
+          <div class="trip-card-header"><span class="trip-card-title">Nissan NP300</span><span class="trip-card-id">TRP-2468</span></div>
+          <div class="trip-route">
+            <span class="trip-route-dot" style="background:#639922"></span>
+            <span class="trip-route-label">Mombasa</span>
+            <span class="trip-route-line"></span>
+            <span class="trip-route-label">Nairobi</span>
+            <span class="trip-route-dot" style="background:#639922"></span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div class="trip-stats">
+              <span class="trip-stat"><strong>485 km</strong></span>
+              <span class="trip-stat"><strong>6h 20m</strong></span>
+              <span class="trip-stat"><strong>77 km/h</strong></span>
+            </div>
+            <span class="v-badge active">Completed</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 9: Trip Detail -->
+  <div class="screen" id="screen-trip-detail" data-screen-label="09 Trip Detail">
+    <div class="status-bar"><span>9:41</span><span>⦿ ▮▮▮</span></div>
+    <div class="trip-detail-container">
+      <div class="trip-detail-header">
+        <button class="back-btn" onclick="showScreen('screen-trips')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>
+        <h1 class="form-title">TRP-2470</h1>
+        <button class="export-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gray-700)" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></button>
+      </div>
+      <div class="trip-detail-body">
+        <div class="trip-mini-map">
+          <svg viewBox="0 0 412 160" preserveAspectRatio="xMidYMid slice">
+            <rect fill="#dce8f5" width="412" height="160"/>
+            <path d="M40 130 Q100 60 200 80 Q300 100 380 40" stroke="var(--blue-600)" stroke-width="3" fill="none" stroke-linecap="round"/>
+            <circle cx="40" cy="130" r="6" fill="#639922" stroke="#fff" stroke-width="2"/>
+            <circle cx="380" cy="40" r="6" fill="var(--blue-600)" stroke="#fff" stroke-width="2"/>
+          </svg>
+          <button class="replay-btn">▶ Replay</button>
+        </div>
+        <div class="trip-stat-grid">
+          <div class="trip-stat-card"><div class="trip-stat-card-label">Distance</div><div class="trip-stat-card-value">158 km</div></div>
+          <div class="trip-stat-card"><div class="trip-stat-card-label">Duration</div><div class="trip-stat-card-value">2h 34m</div></div>
+          <div class="trip-stat-card"><div class="trip-stat-card-label">Avg Speed</div><div class="trip-stat-card-value">62 km/h</div></div>
+          <div class="trip-stat-card"><div class="trip-stat-card-label">Max Speed</div><div class="trip-stat-card-value over-limit">98 km/h</div></div>
+        </div>
+        <div class="timeline">
+          <div class="section-title">Stops</div>
+          <div class="timeline-item">
+            <div class="timeline-dot start"></div>
+            <div class="timeline-info"><div class="timeline-place">Nairobi — Industrial Area depot</div><div class="timeline-meta">Departed 06:45 AM</div></div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-info"><div class="timeline-place">Limuru — Fuel stop</div><div class="timeline-meta">Arrived 07:22 AM · Dwell 8 min</div></div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-info"><div class="timeline-place">Naivasha — Delivery point</div><div class="timeline-meta">Arrived 08:10 AM · Dwell 25 min</div></div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot end"></div>
+            <div class="timeline-info"><div class="timeline-place">Nakuru — Warehouse</div><div class="timeline-meta">Arrived 09:19 AM</div></div>
+          </div>
+        </div>
+        <div class="events-log">
+          <div class="section-title">Events</div>
+          <div class="event-item"><span class="event-dot" style="background:var(--alert)"></span><span class="event-text">Speeding — 98 km/h on Naivasha Rd</span><span class="event-time">07:48</span></div>
+          <div class="event-item"><span class="event-dot" style="background:var(--idle)"></span><span class="event-text">Long idle — 25 min at Naivasha</span><span class="event-time">08:10</span></div>
+          <div class="event-item"><span class="event-dot" style="background:var(--active)"></span><span class="event-text">Trip completed</span><span class="event-time">09:19</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 10: Vehicle Detail -->
+  <div class="screen" id="screen-vehicle-detail" data-screen-label="10 Vehicle Detail">
+    <div class="status-bar light"><span>9:41</span><span>⦿ ▮▮▮</span></div>
+    <div class="form-container" style="padding-top:32px;background:var(--gray-50)">
+      <div class="form-header">
+        <button class="back-btn" onclick="showScreen('screen-vehicles')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>
+        <h1 class="form-title" style="font-size:16px">Vehicle Detail</h1>
+        <button class="back-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--blue-600)" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+      </div>
+      <div style="flex:1;overflow-y:auto">
+        <div class="vd-hero">
+          <div class="vd-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="11" width="18" height="7" rx="2"/><circle cx="7.5" cy="18" r="1.5"/><circle cx="16.5" cy="18" r="1.5"/><path d="M5 11V8a2 2 0 012-2h10a2 2 0 012 2v3"/></svg></div>
+          <div class="vd-hero-info">
+            <div class="vd-hero-name">Toyota Hilux</div>
+            <div class="vd-hero-sub">KBA 234F · 2021 Toyota Hilux SR5</div>
+          </div>
+          <span class="v-badge alert" style="background:rgba(255,255,255,0.15);color:#fff">Speeding</span>
+        </div>
+        <div class="vd-rows">
+          <div class="vd-row"><span class="vd-row-label">Driver</span><span class="vd-row-value">James Mwangi</span></div>
+          <div class="vd-row"><span class="vd-row-label">Speed</span><span class="vd-row-value danger">112 km/h (limit: 80)</span></div>
+          <div class="vd-row"><span class="vd-row-label">Location</span><span class="vd-row-value">Mombasa Rd, km 42</span></div>
+          <div class="vd-row"><span class="vd-row-label">Route</span><span class="vd-row-value">Nairobi → Mombasa</span></div>
+          <div class="vd-row"><span class="vd-row-label">ETA</span><span class="vd-row-value">3h 20m · 380 km remaining</span></div>
+          <div class="vd-row"><span class="vd-row-label">Fuel</span><span class="vd-row-value">68%</span></div>
+        </div>
+        <div style="padding:16px">
+          <div class="section-title">Recent Alerts</div>
+          <div class="alert-row-item" style="border-radius:var(--radius-btn);border:1px solid var(--gray-200);margin-bottom:8px">
+            <div class="alert-icon-tile danger"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4"/><circle cx="12" cy="17" r="1"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg></div>
+            <div class="alert-content"><div class="alert-title-text">Speeding — 112 km/h</div><div class="alert-time">2 min ago</div></div>
+          </div>
+          <div class="alert-row-item" style="border-radius:var(--radius-btn);border:1px solid var(--gray-200)">
+            <div class="alert-icon-tile warning"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+            <div class="alert-content"><div class="alert-title-text">Long idle — 18 min</div><div class="alert-time">1h ago</div></div>
+          </div>
+        </div>
+        <div class="vd-actions">
+          <div class="vd-action" onclick="showScreen('screen-map')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg><span class="vd-action-label">Track</span></div>
+          <div class="vd-action" onclick="showScreen('screen-trips')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/><path d="M3 12h18"/></svg><span class="vd-action-label">Trips</span></div>
+          <div class="vd-action" onclick="showScreen('screen-alerts')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg><span class="vd-action-label">Alerts</span></div>
+          <div class="vd-action"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg><span class="vd-action-label">More</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Drawer overlay -->
+  <div class="drawer-overlay" id="drawer" onclick="closeDrawer(event)">
+    <div class="drawer">
+      <div class="drawer-header">
+        <div class="drawer-avatar">AK</div>
+        <div class="drawer-name">Alice Kamau</div>
+        <div class="drawer-role">Fleet Manager · Savanna Logistics</div>
+      </div>
+      <div class="drawer-section">
+        <div class="drawer-section-label">Monitoring</div>
+        <div class="drawer-item active" onclick="showScreen('screen-map', this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+          Live Map
+        </div>
+        <div class="drawer-item" onclick="showScreen('screen-alerts', this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+          Alerts
+          <span class="drawer-badge">5</span>
+        </div>
+        <div class="drawer-item" onclick="showScreen('screen-vehicles', this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="7" rx="2"/><circle cx="7.5" cy="18" r="1.5"/><circle cx="16.5" cy="18" r="1.5"/><path d="M5 11V8a2 2 0 012-2h10a2 2 0 012 2v3"/></svg>
+          Vehicles
+        </div>
+      </div>
+      <div class="drawer-section">
+        <div class="drawer-section-label">Management</div>
+        <div class="drawer-item" onclick="showScreen('screen-drivers', this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a6.5 6.5 0 0113 0"/></svg>
+          Drivers
+        </div>
+        <div class="drawer-item" onclick="showScreen('screen-trips', this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/><path d="M3 12h18"/></svg>
+          Trips
+        </div>
+        <div class="drawer-item" onclick="showScreen('screen-analytics', this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+          Analytics
+        </div>
+      </div>
+      <div class="drawer-footer">
+        <div class="drawer-item" onclick="showScreen('screen-login', this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1.08-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1.08 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001.08 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9c.26.6.84 1 1.51 1.08H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1.08z"/></svg>
+          Settings
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-bar"><div class="indicator"></div></div>
+</div>
+
+<script>
+function showScreen(id, el) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.drawer-item').forEach(i => i.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.getElementById('drawer').classList.remove('open');
+  localStorage.setItem('activeScreen', id);
+}
+function toggleDrawer() {
+  document.getElementById('drawer').classList.add('open');
+}
+function closeDrawer(e) {
+  if (!e || e.target === e.currentTarget) {
+    document.getElementById('drawer').classList.remove('open');
+  }
+}
+const saved = localStorage.getItem('activeScreen');
+if (saved && document.getElementById(saved)) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(saved).classList.add('active');
+}
+</script>
+</body>
+</html>
