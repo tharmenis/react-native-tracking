@@ -1,4 +1,18 @@
-const defaultBaseUrl = 'https://trackingbackend-production-8b2e.up.railway.app';
+import { Platform } from 'react-native';
+
+// Default production URL
+const prodBaseUrl = 'https://trackingbackend-production-8b2e.up.railway.app';
+
+// Development fallbacks:
+// - Android emulator: 10.0.2.2 maps to host localhost
+// - iOS simulator: localhost works
+// - Physical device: set EXPO_PUBLIC_API_BASE_URL to your machine IP (e.g. http://192.168.1.10:3000)
+function defaultDevBase() {
+  if (Platform.OS === 'android') return 'http://10.0.2.2:3000';
+  return 'http://localhost:3000';
+}
+
+const defaultBaseUrl = __DEV__ ? defaultDevBase() : prodBaseUrl;
 const defaultVehiclesPath = '/api/vehicles';
 const defaultAlarmsPath = '/alarms';
 const defaultPushTokenPath = '/users/push-token';
@@ -33,5 +47,7 @@ export function buildApiUrl(path: string) {
     throw new Error('Missing EXPO_PUBLIC_API_BASE_URL.');
   }
 
-  return `${apiConfig.baseUrl}${normalizePath(path)}`;
+  const full = `${apiConfig.baseUrl}${normalizePath(path)}`;
+
+  return full;
 }

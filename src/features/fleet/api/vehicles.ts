@@ -1,10 +1,11 @@
 import { apiConfig, buildApiUrl, hasApiBaseUrl } from '../../../shared/api/config';
+import { ApiError } from '../../../shared/api/request';
 import { vehicles as fallbackVehicles } from '../../../shared/data/mockData';
 import { Vehicle, VehicleStatus } from '../../../shared/types/models';
 
 type FetchVehiclesResult = {
   vehicles: Vehicle[];
-  source: 'remote' | 'mock';
+  source: 'remote' | 'mock' | 'error';
   message?: string;
 };
 
@@ -230,6 +231,20 @@ function mapRemoteVehicle(item: unknown, index: number): Vehicle | null {
 }
 
 function toErrorMessage(error: unknown) {
+  if (error instanceof ApiError) {
+    if (error.status === 401) {
+      return 'Vehicle service rejected the access token.';
+    }
+
+    if (error.status === 403) {
+      return 'Vehicle service could not resolve the user realm.';
+    }
+
+    if (error.status >= 500) {
+      return 'Vehicle service is temporarily unavailable.';
+    }
+  }
+
   if (error instanceof Error) {
     return error.message;
   }
@@ -249,19 +264,12 @@ export async function fetchVehicles(options?: FetchVehiclesOptions): Promise<Fet
   }
 
   try {
-    const response = await fetch(buildApiUrl(apiConfig.vehiclesPath), {
-      method: apiConfig.vehiclesMethod,
-      headers: {
-        Accept: 'application/json',
-      },
+    const { requestJson } = await import('../../../shared/api/request');
+    const payload = (await requestJson(apiConfig.vehiclesPath, {
+      method: 'POST',
+      headers: { Accept: 'application/json' },
       signal,
-    });
-
-    if (!response.ok) {
-      throw new Error(`Vehicle request failed with ${response.status}.`);
-    }
-
-    const payload = (await response.json()) as unknown;
+    })) as unknown;
     const remoteVehicles = extractCollection(payload)
       .map((item, index) => mapRemoteVehicle(item, index))
       .filter((item): item is Vehicle => item !== null);
@@ -271,6 +279,14 @@ export async function fetchVehicles(options?: FetchVehiclesOptions): Promise<Fet
       source: 'remote',
     };
   } catch (error) {
+    if (error instanceof ApiError) {
+      return {
+        vehicles: [],
+        source: 'error',
+        message: toErrorMessage(error),
+      };
+    }
+
     return {
       vehicles: fallbackVehicles,
       source: 'mock',

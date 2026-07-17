@@ -1,31 +1,104 @@
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import * as WebBrowser from 'expo-web-browser';
+import { makeRedirectUri, useAuthRequest, useAutoDiscovery } from 'expo-auth-session';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { RootStackParamList } from '../../../app/navigation/types';
 import { usePushNotifications } from '../../../shared/notifications/PushNotificationsProvider';
+import useAuth from '../../../auth/useAuth';
+import { DEFAULT_OIDC_SCOPES, REDIRECT_SCHEME } from '../../../auth/authConfig';
 import { colors, radius, spacing, typography } from '../../../shared/theme/theme';
+
+WebBrowser.maybeCompleteAuthSession();
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
 export function LoginScreen({ navigation }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [orgSlug, setOrgSlug] = useState('');
+  const [pendingPrompt, setPendingPrompt] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const auth = useAuth();
+  const discovery = useAutoDiscovery(
+    auth.realm ? `${auth.realm.keycloakBaseUrl}/realms/${auth.realm.realmName}` : ''
+  );
+
+  const redirectUri = makeRedirectUri({ native: `${REDIRECT_SCHEME}://redirect` });
+ 
+  const [request, response, promptAsync] = useAuthRequest(
+    {
+      clientId: auth.realm?.clientId ?? 'pcp-tracking-app',
+      redirectUri,
+      usePKCE: true,
+      scopes: DEFAULT_OIDC_SCOPES,
+    },
+    discovery as any,
+  );
   const { registerDevicePushToken } = usePushNotifications();
+
+  useEffect(() => {
+    if (!pendingPrompt || !request) return;
+
+    let mounted = true;
+
+    (async () => {
+      try {
+       
+        const result = await promptAsync();
+        
+
+        if (!mounted) return;
+
+        if (result.type === 'success' && result.params?.code) {
+          await auth.exchangeCodeForTokens({
+            code: result.params.code,
+            codeVerifier: (request as any).codeVerifier,
+            redirectUri,
+          });
+
+          try {
+            await registerDevicePushToken();
+          } catch {
+            // non-blocking
+          }
+
+          navigation.replace('Main');
+        }
+      } catch (e) {
+        console.log('[auth] promptAsync error', e);
+      } finally {
+       
+        setIsSubmitting(false);
+        setPendingPrompt(false);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [pendingPrompt, request]);
 
   async function handleSignIn() {
     setIsSubmitting(true);
-
+    setErrorMessage(null);
     try {
-      await registerDevicePushToken();
-    } catch {
-      // Push registration is non-blocking; proceed to main regardless.
-    } finally {
+      await auth.resolveRealm(orgSlug.trim());
+      // wait for request to be created via discovery/useAuthRequest
+      setPendingPrompt(true);
+    } catch (e: any) {
       setIsSubmitting(false);
+      if (e?.message === 'unknown_organization' || e?.message?.includes('unknown_organization')) {
+        setErrorMessage("We couldn't find that organization — check the identifier and try again.");
+      } else if (e?.message === 'rate_limited') {
+        setErrorMessage('Too many attempts — please wait a moment and try again.');
+      } else {
+        setErrorMessage('Unable to resolve organization. Please try again.');
+      }
     }
-
-    navigation.replace('Main');
   }
 
   return (
@@ -38,16 +111,20 @@ export function LoginScreen({ navigation }: Props) {
         <Text style={styles.subtitle}>Sign in to manage your fleet</Text>
 
         <View style={styles.form}>
-          <Text style={styles.label}>Email</Text>
-          <TextInput editable={false} style={styles.input} value="Use secure browser sign-in" />
+          <Text style={styles.label}>Organization</Text>
+          <TextInput
+            value={orgSlug}
+            onChangeText={setOrgSlug}
+            placeholder="Enter organization slug"
+            style={styles.input}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
 
-          <Text style={styles.label}>Password</Text>
-          <TextInput editable={false} secureTextEntry style={styles.input} value="Managed by Keycloak" />
+          {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
 
-          <Text style={styles.forgot}>Forgot password?</Text>
-
-          <Pressable disabled={isSubmitting} onPress={handleSignIn} style={[styles.button, isSubmitting && styles.buttonDisabled]}>
-            <Text style={styles.buttonText}>{isSubmitting ? 'Preparing device...' : 'Sign In'}</Text>
+          <Pressable disabled={isSubmitting || !orgSlug} onPress={handleSignIn} style={[styles.button, (isSubmitting || !orgSlug) && styles.buttonDisabled]}>
+            <Text style={styles.buttonText}>{isSubmitting ? 'Signing in...' : 'Sign In'}</Text>
           </Pressable>
         </View>
 
@@ -123,6 +200,11 @@ const styles = StyleSheet.create({
   safeArea: {
     backgroundColor: colors.white,
     flex: 1,
+  },
+  error: {
+    color: colors.alert,
+    marginTop: spacing.sm,
+    fontSize: typography.caption,
   },
   subtitle: {
     color: colors.gray500,

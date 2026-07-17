@@ -15,6 +15,7 @@ const config: ExpoConfig = {
   },
   assetBundlePatterns: ['**/*'],
   ios: {
+    "bundleIdentifier": "com.fleettrack.mobile",
     supportsTablet: false,
     config: {
       googleMapsApiKey,
@@ -35,6 +36,8 @@ const config: ExpoConfig = {
     bundler: 'metro',
   },
   plugins: ['expo-asset', 'expo-font', 'expo-notifications'],
+  scheme: 'pcp-tracking-app',
+  
 };
 
 export default config;

@@ -78,8 +78,10 @@ export function VehiclesScreen({ navigation }: Props) {
           refreshControl={<RefreshControl onRefresh={() => void loadVehicles(undefined, true)} refreshing={isRefreshing} tintColor={colors.blue600} />}
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Text style={styles.emptyTitle}>No vehicles returned</Text>
-              <Text style={styles.emptyText}>Check the configured API path and confirm the remote instance exposes a vehicle list.</Text>
+              <Text style={styles.emptyTitle}>{notice ? 'Unable to load vehicles' : 'No vehicles returned'}</Text>
+              <Text style={styles.emptyText}>
+                {notice ?? 'Check the configured API path and confirm the remote instance exposes a vehicle list.'}
+              </Text>
             </View>
           }
           renderItem={({ item }) => (

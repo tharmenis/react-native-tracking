@@ -22,6 +22,7 @@ import { TripDetailScreen } from '../../features/trips/screens/TripDetailScreen'
 import { TripsScreen } from '../../features/trips/screens/TripsScreen';
 import { currentUser } from '../../shared/data/mockData';
 import { usePushNotifications } from '../../shared/notifications/PushNotificationsProvider';
+import useAuth from '../../auth/useAuth';
 import { colors, radius, spacing, typography } from '../../shared/theme/theme';
 import { DrawerParamList, RootStackParamList } from './types';
 
@@ -29,6 +30,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 const Drawer = createDrawerNavigator<DrawerParamList>();
 
 function CustomDrawerContent(props: DrawerContentComponentProps) {
+  const auth = useAuth();
   const { alarmBadgeCount } = usePushNotifications();
   const activeRoute = props.state.routeNames[props.state.index];
 
@@ -90,7 +92,8 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
 
       <View style={styles.drawerFooter}>
         <Pressable
-          onPress={() => {
+          onPress={async () => {
+            await auth.logout(true);
             props.navigation.getParent()?.dispatch(
               CommonActions.reset({
                 index: 0,

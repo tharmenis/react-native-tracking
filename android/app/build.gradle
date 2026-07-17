@@ -80,6 +80,7 @@ def enableProguardInReleaseBuilds = (findProperty('android.enableProguardInRelea
  * this variant is about 6MiB larger per architecture than default.
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
+def googleMapsApiKey = (project.findProperty('GOOGLE_MAPS_API_KEY') ?: System.getenv('GOOGLE_MAPS_API_KEY') ?: '').toString().trim()
 
 android {
     ndkVersion rootProject.ext.ndkVersion
@@ -94,6 +95,7 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0.0"
+        manifestPlaceholders = [googleMapsApiKey: googleMapsApiKey]
     }
     signingConfigs {
         debug {

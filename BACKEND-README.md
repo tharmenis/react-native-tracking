@@ -154,3 +154,11 @@ npm test
 - Ensure environment variables are set in your deployment environment
 - The `/health` endpoint can be used for load balancer health checks
 - CORS is enabled by default (all origins) — restrict in production if needed
+
+
+Android emulator networking
+If you are testing on an Android emulator, set EXPO_PUBLIC_API_BASE_URL to your machine’s host alias, not localhost. Use:
+
+EXPO_PUBLIC_API_BASE_URL=http://10.0.2.2:3000
+
+On an iOS simulator, localhost is usually correct. On a physical device, use your machine’s LAN IP instead.

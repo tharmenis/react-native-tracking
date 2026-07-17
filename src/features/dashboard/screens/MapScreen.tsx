@@ -16,6 +16,7 @@ const mapRefreshMs = 1500;
 const minDelta = 0.002;
 const maxDelta = 40;
 const vehicleSearchResultCount = 6;
+const mapProvider = PROVIDER_GOOGLE;
 
 function markerColor(status: Vehicle['status']) {
   switch (status) {
@@ -35,6 +36,7 @@ export function MapScreen({ navigation }: Props) {
   const [vehicleItems, setVehicleItems] = useState<Vehicle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [notice, setNotice] = useState<string | null>(null);
+  const [vehicleSource, setVehicleSource] = useState<'remote' | 'mock' | 'error' | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isMapReady, setIsMapReady] = useState(false);
@@ -70,6 +72,7 @@ export function MapScreen({ navigation }: Props) {
     const result = await fetchVehicles({ signal });
 
     setVehicleItems(result.vehicles);
+    setVehicleSource(result.source);
     setNotice(result.message ?? null);
     setIsLoading(false);
   }
@@ -204,7 +207,7 @@ export function MapScreen({ navigation }: Props) {
           onRegionChangeComplete={(region) => {
             regionRef.current = region;
           }}
-          provider={PROVIDER_GOOGLE}
+          provider={mapProvider}
           ref={mapRef}
           showsCompass={false}
           showsMyLocationButton={false}
@@ -296,6 +299,16 @@ export function MapScreen({ navigation }: Props) {
           </Pressable>
         </View>
 
+        {__DEV__ ? (
+          <View style={styles.debugBanner}>
+            <Text style={styles.debugText}>mapReady: {isMapReady ? 'yes' : 'no'}</Text>
+            <Text style={styles.debugText}>vehicles: {vehicleItems.length}</Text>
+            <Text style={styles.debugText}>mappable: {mappableVehicles.length}</Text>
+            <Text style={styles.debugText}>visible: {visibleVehicles.length}</Text>
+            <Text style={styles.debugText}>source: {vehicleSource ?? 'n/a'}</Text>
+          </View>
+        ) : null}
+
         <View style={styles.statBar}>
           <View style={styles.statItem}>
             <View style={[styles.statDot, { backgroundColor: colors.active }]} />
@@ -327,6 +340,8 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: colors.gray50,
     flex: 1,
+    width: '100%',
+    height: '100%',
   },
   loadingOverlay: {
     ...shadows.card,
@@ -348,6 +363,23 @@ const styles = StyleSheet.create({
   map: {
     backgroundColor: colors.gray200,
     flex: 1,
+  },
+  debugBanner: {
+    backgroundColor: 'rgba(24, 95, 165, 0.88)',
+    borderRadius: radius.md,
+    bottom: 92,
+    gap: 2,
+    maxWidth: 220,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    position: 'absolute',
+    right: spacing.lg,
+    zIndex: 4,
+  },
+  debugText: {
+    color: colors.white,
+    fontSize: typography.tiny,
+    fontWeight: '600',
   },
   mapHeader: {
     alignItems: 'flex-start',

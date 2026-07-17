@@ -1,16 +1,19 @@
-import { apiConfig, buildApiUrl, hasApiBaseUrl } from './config';
+import { apiConfig, hasApiBaseUrl } from './config';
+import { ApiError, requestJson as authRequestJson } from './request';
 import { alarms as fallbackAlarms } from '../data/mockData';
 import { formatTimestamp } from '../helpers/formatters';
 import { Alarm, AlarmSeverity, AlarmStatus } from '../types/models';
 
 type FetchAlarmsResult = {
   alarms: Alarm[];
-  source: 'remote' | 'mock';
+  source: 'remote' | 'mock' | 'error';
   message?: string;
 };
 
 type RequestOptions = {
   signal?: AbortSignal;
+  status?: AlarmStatus;
+  severity?: AlarmSeverity;
 };
 
 type AlarmRecord = Record<string, unknown>;
@@ -134,41 +137,25 @@ function mapRemoteAlarm(item: unknown, index: number): Alarm | null {
 }
 
 function toErrorMessage(error: unknown) {
+  if (error instanceof ApiError) {
+    if (error.status === 401) {
+      return 'Alarm service rejected the access token.';
+    }
+
+    if (error.status === 403) {
+      return 'Alarm service could not resolve the user realm.';
+    }
+
+    if (error.status >= 500) {
+      return 'Alarm service is temporarily unavailable.';
+    }
+  }
+
   if (error instanceof Error) {
     return error.message;
   }
 
   return 'Unable to load alarms from the remote instance.';
-}
-
-async function requestJson(path: string, init?: RequestInit) {
-  if (!hasApiBaseUrl()) {
-    throw new Error('Missing EXPO_PUBLIC_API_BASE_URL.');
-  }
-
-  const response = await fetch(buildApiUrl(path), {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(init?.headers ?? {}),
-    },
-    ...init,
-  });
-
-  if (!response.ok) {
-    throw new Error(`Request failed (${response.status}).`);
-  }
-
-  if (response.status === 204) {
-    return null;
-  }
-
-  const text = await response.text();
-
-  if (!text) {
-    return null;
-  }
-
-  return JSON.parse(text) as unknown;
 }
 
 export async function fetchAlarms(options?: RequestOptions): Promise<FetchAlarmsResult> {
@@ -181,7 +168,19 @@ export async function fetchAlarms(options?: RequestOptions): Promise<FetchAlarms
   }
 
   try {
-    const payload = await requestJson(apiConfig.alarmsPath, { method: 'GET', signal: options?.signal });
+    const params = new URLSearchParams();
+
+    if (options?.status) {
+      params.set('status', options.status);
+    }
+
+    if (options?.severity) {
+      params.set('severity', options.severity);
+    }
+
+    const query = params.toString();
+    const path = query ? `${apiConfig.alarmsPath}?${query}` : apiConfig.alarmsPath;
+    const payload = await authRequestJson(path, { method: 'GET', signal: options?.signal });
     const records = extractCollection(payload);
     const mapped = records.map(mapRemoteAlarm).filter((item): item is Alarm => item !== null);
 
@@ -191,6 +190,14 @@ export async function fetchAlarms(options?: RequestOptions): Promise<FetchAlarms
       message: mapped.length > 0 ? undefined : 'No remote alarms returned, using demo data.',
     };
   } catch (error) {
+    if (error instanceof ApiError) {
+      return {
+        alarms: [],
+        source: 'error',
+        message: toErrorMessage(error),
+      };
+    }
+
     return {
       alarms: fallbackAlarms,
       source: 'mock',
@@ -220,8 +227,8 @@ export async function registerPushToken(pushToken: string) {
     return;
   }
 
-  await requestJson(apiConfig.pushTokenPath, {
+  await authRequestJson(apiConfig.pushTokenPath, {
     method: 'POST',
-    body: JSON.stringify({ pushToken }),
+    body: JSON.stringify({ expoPushToken: pushToken }),
   });
 }
