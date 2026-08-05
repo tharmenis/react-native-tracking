@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DrawerParamList } from '../../../app/navigation/types';
 import { fetchVehicles } from '../../fleet/api/vehicles';
+import { VehicleMarker } from '../components/VehicleMarker';
 import { colors, radius, shadows, spacing, typography } from '../../../shared/theme/theme';
 import { Vehicle } from '../../../shared/types/models';
 
@@ -214,13 +215,9 @@ export function MapScreen({ navigation }: Props) {
           style={styles.map}
         >
           {mappableVehicles.map((vehicle) => (
-            <Marker
-              coordinate={{ latitude: vehicle.latitude as number, longitude: vehicle.longitude as number }}
+            <VehicleMarker
               key={vehicle.id}
-              pinColor={markerColor(vehicle.status)}
-              rotation={vehicle.heading ?? 0}
-              title={`${vehicle.name} (${vehicle.plate})`}
-              description={`${vehicle.driver} · ${vehicle.meta}`}
+              vehicle={vehicle}
             />
           ))}
         </MapView>

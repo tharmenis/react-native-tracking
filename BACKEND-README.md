@@ -161,4 +161,5 @@ If you are testing on an Android emulator, set EXPO_PUBLIC_API_BASE_URL to your 
 
 EXPO_PUBLIC_API_BASE_URL=http://10.0.2.2:3000
 
-On an iOS simulator, localhost is usually correct. On a physical device, use your machine’s LAN IP instead.
+On an iOS simulator, 
+localhost is usually correct. On a physical device, use your machine’s LAN IP instead.
