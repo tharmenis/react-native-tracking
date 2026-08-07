@@ -83,11 +83,7 @@ export async function authFetch(input: RequestInfo, init?: RequestInit) {
   headers.set('Authorization', `Bearer ${usable.accessToken}`);
   const merged: RequestInit = { ...(init ?? {}), headers };
 
-  try {
-    console.debug('[authFetch] url=', input, 'options=', merged && { method: merged.method, headers: Object.fromEntries((merged.headers as Headers).entries()) });
-  } catch (e) {
-    // ignore header logging errors
-  }
+ 
 
   return fetch(input, merged);
 }

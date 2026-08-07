@@ -18,8 +18,8 @@ import { DriverFormScreen } from '../../features/drivers/screens/DriverFormScree
 import { DriversScreen } from '../../features/drivers/screens/DriversScreen';
 import { VehicleDetailScreen } from '../../features/fleet/screens/VehicleDetailScreen';
 import { VehiclesScreen } from '../../features/fleet/screens/VehiclesScreen';
-import { TripDetailScreen } from '../../features/trips/screens/TripDetailScreen';
-import { TripsScreen } from '../../features/trips/screens/TripsScreen';
+import { TripDetailsScreen } from '../../features/route-history/screens/TripDetailsScreen';
+import { TripsScreen } from '../../features/route-history/screens/TripsScreen';
 import { currentUser } from '../../shared/data/mockData';
 import { usePushNotifications } from '../../shared/notifications/PushNotificationsProvider';
 import useAuth from '../../auth/useAuth';
@@ -139,7 +139,7 @@ export function AppNavigator() {
       <Stack.Screen component={MainDrawerNavigator} name="Main" />
       <Stack.Screen component={AlarmDetailScreen} name="AlarmDetail" />
       <Stack.Screen component={DriverFormScreen} name="DriverForm" />
-      <Stack.Screen component={TripDetailScreen} name="TripDetail" />
+      <Stack.Screen component={TripDetailsScreen} name="TripDetail" />
       <Stack.Screen component={VehicleDetailScreen} name="VehicleDetail" />
     </Stack.Navigator>
   );

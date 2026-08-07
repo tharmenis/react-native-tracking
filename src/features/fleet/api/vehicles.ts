@@ -306,19 +306,19 @@ export async function fetchVehicles(
 
   const fullUrl = buildApiUrl(apiConfig.vehiclesPath);
 
-  if (__DEV__) {
-    const requestDetails = {
-      method: apiConfig.vehiclesMethod,
-      url: fullUrl,
-      headers: {
-        Accept: "application/json",
-      },
-      body: null,
-      signalAborted: signal?.aborted ?? false,
-    };
+  // if (__DEV__) {
+  //   const requestDetails = {
+  //     method: apiConfig.vehiclesMethod,
+  //     url: fullUrl,
+  //     headers: {
+  //       Accept: "application/json",
+  //     },
+  //     body: null,
+  //     signalAborted: signal?.aborted ?? false,
+  //   };
 
-    console.log("[api/vehicles] request", requestDetails);
-  }
+  //   console.log("[api/vehicles] request", requestDetails);
+  // }
 
   try {
     const { requestJson } = await import("../../../shared/api/request");
