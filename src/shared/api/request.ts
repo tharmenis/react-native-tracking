@@ -1,26 +1,26 @@
-import { buildApiUrl, hasApiBaseUrl } from './config';
-import { authFetch, clearAuth } from '../../auth/authClient';
+import { buildApiUrl, hasApiBaseUrl } from "./config";
+import { authFetch, clearAuth } from "../../auth/authClient";
 
 export class ApiError extends Error {
   status: number;
 
   constructor(status: number, message: string) {
     super(message);
-    this.name = 'ApiError';
+    this.name = "ApiError";
     this.status = status;
   }
 }
 
 export async function requestJson(path: string, init?: RequestInit) {
   if (!hasApiBaseUrl()) {
-    throw new Error('Missing EXPO_PUBLIC_API_BASE_URL.');
+    throw new Error("Missing EXPO_PUBLIC_API_BASE_URL.");
   }
 
   const fullUrl = buildApiUrl(path);
-  
+
   const response = await authFetch(fullUrl, {
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       ...(init?.headers ?? {}),
     },
     ...init,
@@ -28,19 +28,26 @@ export async function requestJson(path: string, init?: RequestInit) {
 
   if (response.status === 401) {
     await clearAuth();
-    throw new ApiError(401, 'session_invalid');
+    throw new ApiError(401, "session_invalid");
   }
 
   if (response.status === 403) {
-    throw new ApiError(403, 'forbidden');
+    throw new ApiError(403, "forbidden");
   }
 
   if (response.status >= 500 && response.status < 600) {
-    throw new ApiError(response.status, 'service_unavailable');
+    throw new ApiError(response.status, "service_unavailable");
   }
 
   if (!response.ok) {
-    throw new ApiError(response.status, `Request failed (${response.status}).`);
+    let message = `Request failed (${response.status}).`;
+    try {
+      const body = await response.json();
+      if (body?.error) message = body.error;
+    } catch {
+      // body wasn't JSON or was empty — keep the generic message
+    }
+    throw new ApiError(response.status, message);
   }
 
   if (response.status === 204) return null;

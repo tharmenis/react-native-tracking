@@ -1,18 +1,8 @@
-import React from 'react';
-import { DrawerScreenProps } from '@react-navigation/drawer';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-} from 'react-native';
-import { Trip } from '../../../shared/types/models';
-import { DrawerParamList } from '../../../app/navigation/types';
+import React from "react";
 
-
-type Props = DrawerScreenProps<DrawerParamList, 'TripDetail'>;
-
-
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { Trip } from "../../../shared/types/models";
+import { getTripDurationMin } from "../utils/tripDuration";
 
 interface TripCardProps {
   trip: Trip;
@@ -22,10 +12,10 @@ interface TripCardProps {
 export const TripCard = ({ trip, onPress }: TripCardProps) => {
   // Format date for display
   const startDate = new Date(trip.startTime);
-  const formattedDate = startDate.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
+  const formattedDate = startDate.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
   });
 
   return (
@@ -33,14 +23,21 @@ export const TripCard = ({ trip, onPress }: TripCardProps) => {
       <View style={styles.cardHeader}>
         <Text style={styles.cardTitle}>{formattedDate}</Text>
       </View>
-      
+
       <View style={styles.cardContent}>
         <View style={styles.infoRow}>
-          <Text style={styles.duration}>Duration: {trip.durationMin} min</Text>
+          <Text style={styles.duration}>
+            Duration: {getTripDurationMin(trip)} min
+          </Text>
           <Text style={styles.points}>Points: {trip.path.length}</Text>
         </View>
-        
+
         <Text style={styles.avgSpeed}>Avg Speed: {trip.avgSpeedKmh} km/h</Text>
+        {trip.distanceKm != null && (
+          <Text style={styles.avgSpeed}>
+            Distance: {trip.distanceKm.toFixed(1)} km
+          </Text>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -48,11 +45,11 @@ export const TripCard = ({ trip, onPress }: TripCardProps) => {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 8,
     padding: 16,
     marginBottom: 18,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -66,27 +63,27 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   cardContent: {
-    flexDirection: 'column',
+    flexDirection: "column",
   },
   infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 4,
   },
   duration: {
     fontSize: 14,
-    color: '#333',
+    color: "#333",
   },
   points: {
     fontSize: 14,
-    color: '#333',
+    color: "#333",
   },
   avgSpeed: {
     fontSize: 14,
-    color: '#666',
+    color: "#666",
     marginTop: 4,
   },
 });

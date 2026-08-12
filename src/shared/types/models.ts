@@ -12,6 +12,7 @@ export type Vehicle = {
   driver: string;
   meta: string;
   status: VehicleStatus;
+  imei: string;
   latitude?: number;
   longitude?: number;
   heading?: number;

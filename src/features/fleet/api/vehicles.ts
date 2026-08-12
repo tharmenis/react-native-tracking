@@ -221,6 +221,7 @@ function extractCollection(payload: unknown): unknown[] {
 function mapRemoteVehicle(item: unknown, index: number): Vehicle | null {
   const record = asRecord(item);
 
+ 
   if (!record) {
     return null;
   }
@@ -252,6 +253,7 @@ function mapRemoteVehicle(item: unknown, index: number): Vehicle | null {
   const lastSeen = asString(
     record.lastSeen ?? record.updatedAt ?? record.timestamp,
   );
+  const imei = asString(record.imei ?? record.IMEI ?? record.deviceImei ?? record.serialNumber) || "Unknown IMEI";
 
   return {
     id,
@@ -260,6 +262,7 @@ function mapRemoteVehicle(item: unknown, index: number): Vehicle | null {
     driver,
     meta: formatMeta(record),
     status: toVehicleStatus(statusValue),
+    imei,
     latitude: coordinates?.latitude,
     longitude: coordinates?.longitude,
     heading: heading ?? undefined,
@@ -331,7 +334,7 @@ export async function fetchVehicles(
     const remoteVehicles = extractCollection(payload)
       .map((item, index) => mapRemoteVehicle(item, index))
       .filter((item): item is Vehicle => item !== null);
-
+    
     return {
       vehicles: remoteVehicles,
       source: "remote",

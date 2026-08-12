@@ -17,6 +17,7 @@ const defaultVehiclesPath = '/api/vehicles';
 const defaultAlarmsPath = '/alarms';
 const defaultPushTokenPath = '/users/push-token';
 const defaultVehiclesMethod = 'POST';
+const defaultTripHistoryPath = '/api/trip-history';
 
 function trimTrailingSlash(value: string) {
   return value.replace(/\/+$/, '');
@@ -36,6 +37,7 @@ export const apiConfig = {
   vehiclesPath: normalizePath(process.env.EXPO_PUBLIC_API_VEHICLES_PATH?.trim() ?? defaultVehiclesPath),
   pushTokenPath: normalizePath(process.env.EXPO_PUBLIC_API_PUSH_TOKEN_PATH?.trim() ?? defaultPushTokenPath),
   vehiclesMethod: (process.env.EXPO_PUBLIC_API_VEHICLES_METHOD?.trim().toUpperCase() ?? defaultVehiclesMethod),
+  tripHistoryPath: normalizePath(process.env.EXPO_PUBLIC_API_TRIP_HISTORY_PATH?.trim() ?? defaultTripHistoryPath),
 };
 
 export function hasApiBaseUrl() {

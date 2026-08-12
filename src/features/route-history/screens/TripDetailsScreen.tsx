@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
@@ -7,13 +7,15 @@ import {
   StyleSheet,
   TouchableOpacity,
   Dimensions,
+  PanResponder,
+  LayoutChangeEvent,
 } from 'react-native';
 import MapView, { Polyline, Marker } from 'react-native-maps';
 import { Trip } from '../../../shared/types/models';
 import { AppHeader } from '../../../shared/components/AppHeader';
 import { colors } from '../../../shared/theme/theme';
 import { DrawerParamList, RootStackParamList } from '../../../app/navigation/types';
-
+import { getTripDurationMin } from '../utils/tripDuration';
 
 
 interface TripDetailsScreenProps {
@@ -25,12 +27,16 @@ interface TripDetailsScreenProps {
   navigation: any;
 }
 
+const THUMB_DIAMETER = 16;
+
 const TripDetailsScreen = ({ route, navigation }: TripDetailsScreenProps) => {
   const { trip } = route.params;
   const [playbackIndex, setPlaybackIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [isMapFullScreen, setIsMapFullScreen] = useState(false);
+  const [trackWidth, setTrackWidth] = useState(0);
+  const [controlsHeight, setControlsHeight] = useState(0);
 
   const toggleMapFullScreen = () => {
     setIsMapFullScreen((prev) => !prev);
@@ -68,6 +74,45 @@ const TripDetailsScreen = ({ route, navigation }: TripDetailsScreenProps) => {
     if (isPlaying) {
       setIsPlaying(false);
     }
+  };
+
+  // Maps a tap/drag position (as a ratio of the track width) to the nearest
+  // path point. Clamped so out-of-track touches can't seek out of range.
+  const seekToRatio = (ratio: number) => {
+    if (trip.path.length < 2) return;
+    const clamped = Math.min(1, Math.max(0, ratio));
+    handleScrub(Math.round(clamped * (trip.path.length - 1)));
+  };
+
+  // Refs keep the PanResponder callbacks from capturing stale values — the
+  // responder is created once, but always reads the latest width/handler.
+  const trackWidthRef = useRef(0);
+  const seekToRatioRef = useRef(seekToRatio);
+  seekToRatioRef.current = seekToRatio;
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (evt) => {
+        if (trackWidthRef.current === 0) return;
+        seekToRatioRef.current(evt.nativeEvent.locationX / trackWidthRef.current);
+      },
+      onPanResponderMove: (evt) => {
+        if (trackWidthRef.current === 0) return;
+        seekToRatioRef.current(evt.nativeEvent.locationX / trackWidthRef.current);
+      },
+    })
+  ).current;
+
+  const handleTrackLayout = (e: LayoutChangeEvent) => {
+    const width = e.nativeEvent.layout.width;
+    setTrackWidth(width);
+    trackWidthRef.current = width;
+  };
+
+  const handleControlsLayout = (e: LayoutChangeEvent) => {
+    setControlsHeight(e.nativeEvent.layout.height);
   };
 
   const handleSpeedChange = (speed: number) => {
@@ -155,7 +200,10 @@ const TripDetailsScreen = ({ route, navigation }: TripDetailsScreenProps) => {
           )}
         </MapView>
           <TouchableOpacity
-          style={styles.fullscreenButton}
+          style={[
+            styles.fullscreenButton,
+            isMapFullScreen && { bottom: controlsHeight + 16 },
+          ]}
           onPress={toggleMapFullScreen}
         >
           <Ionicons name={isMapFullScreen ? 'contract' : 'expand'} size={24} color="#fff" />
@@ -163,7 +211,10 @@ const TripDetailsScreen = ({ route, navigation }: TripDetailsScreenProps) => {
       </View> {/* End of map fullscreen container */}
 
        {/* Playback Controls */}
-      <View style={styles.controlsContainer}>
+      <View
+        style={isMapFullScreen ? styles.controlsContainerFullscreen : styles.controlsContainer}
+        onLayout={handleControlsLayout}
+      >
         <TouchableOpacity 
           style={styles.playButton} 
           onPress={handlePlayPause}
@@ -177,18 +228,35 @@ const TripDetailsScreen = ({ route, navigation }: TripDetailsScreenProps) => {
         </TouchableOpacity>
         
         <View style={styles.scrubberContainer}>
-         
-          <View style={styles.scrubber}>
-            {trip.path.map((_, index) => (
-              <TouchableOpacity
-                key={index}
+          <View
+            style={styles.scrubberTrack}
+            onLayout={handleTrackLayout}
+            {...panResponder.panHandlers}
+          >
+            <View
+              style={[
+                styles.scrubberFill,
+                {
+                  width:
+                    trip.path.length < 2
+                      ? 0
+                      : (playbackIndex / (trip.path.length - 1)) *
+                        (trackWidth || 0),
+                },
+              ]}
+            />
+            {trip.path.length > 1 && (
+              <View
                 style={[
-                  styles.scrubberDot,
-                  index <= playbackIndex && styles.scrubberDotActive,
+                  styles.scrubberThumb,
+                  {
+                    left:
+                      (playbackIndex / (trip.path.length - 1)) *
+                      ((trackWidth || 0) - THUMB_DIAMETER),
+                  },
                 ]}
-                onPress={() => handleScrub(index)}
               />
-            ))}
+            )}
           </View>
         </View>
         
@@ -230,7 +298,7 @@ const TripDetailsScreen = ({ route, navigation }: TripDetailsScreenProps) => {
         
         <View style={styles.statRow}>
           <Text style={styles.statLabel}>Duration:</Text>
-          <Text style={styles.statValue}>{trip.durationMin} minutes</Text>
+          <Text style={styles.statValue}>{getTripDurationMin(trip)} minutes</Text>
         </View>
         
         <View style={styles.statRow}>
@@ -291,10 +359,10 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    zIndex: 999,
+    zIndex: 998,
   },
   fullscreenButton: {
-      position: 'absolute',
+  position: 'absolute',
   right: 16,
   bottom: 16,
   width: 44,
@@ -341,6 +409,17 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#eee',
   },
+  controlsContainerFullscreen: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    zIndex: 999,
+  },
   playButton: {
     backgroundColor: colors.blue600,
     paddingVertical: 12,
@@ -359,24 +438,28 @@ const styles = StyleSheet.create({
   },
   scrubberContainer: {
     marginBottom: 16,
+    paddingVertical: 8,
   },
-  scrubberLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginBottom: 8,
+  scrubberTrack: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.gray200,
+    justifyContent: 'center',
   },
-  scrubber: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  scrubberFill: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    borderRadius: 2,
+    backgroundColor: colors.blue600,
   },
-  scrubberDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#ddd',
-  },
-  scrubberDotActive: {
-    backgroundColor: '#007AFF',
+  scrubberThumb: {
+    position: 'absolute',
+    width: THUMB_DIAMETER,
+    height: THUMB_DIAMETER,
+    borderRadius: THUMB_DIAMETER / 2,
+    backgroundColor: colors.blue600,
   },
   speedContainer: {
     flexDirection: 'row',
