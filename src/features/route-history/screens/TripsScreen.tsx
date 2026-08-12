@@ -176,7 +176,7 @@ const TripsScreen = ({ navigation }: Props) => {
     <View style={styles.container}>
       <AppHeader
         onMenuPress={navigation.openDrawer}
-        rightAction={{ icon: 'swap-vertical-outline' }}
+        rightAction={{ icon: 'swap-vert' }}
         title="Route History"
       />
 

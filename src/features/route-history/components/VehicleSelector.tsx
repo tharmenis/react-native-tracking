@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../../../shared/components/AppIcon';
 import { Vehicle } from '../../../shared/types/models';
 
 interface VehicleSelectorProps {
@@ -96,7 +96,7 @@ export const VehicleSelector = ({
             onPress={handleClear}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-           <Ionicons name="close-circle" size={20} color="#999" /> 
+           <AppIcon name="cancel" size={20} color="#999" /> 
           </TouchableOpacity>
         )}
       </View>

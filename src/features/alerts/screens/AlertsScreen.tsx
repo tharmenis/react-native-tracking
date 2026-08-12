@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../../../shared/components/AppIcon';
 import { DrawerScreenProps } from '@react-navigation/drawer';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
@@ -15,9 +15,9 @@ type Props = DrawerScreenProps<DrawerParamList, 'Alarms'>;
 type AlarmStatusFilter = 'open' | 'acknowledged' | 'resolved';
 
 const iconMap = {
-  high: 'warning-outline',
-  low: 'checkmark-circle-outline',
-  medium: 'time-outline',
+  high: 'warning',
+  low: 'check-circle',
+  medium: 'schedule',
 } as const;
 
 const severityToneMap = {
@@ -120,7 +120,7 @@ export function AlarmsScreen({ navigation }: Props) {
       </View>
       {notice ? (
         <View style={styles.noticeBanner}>
-          <Ionicons color={colors.blue900} name="information-circle-outline" size={16} />
+          <AppIcon color={colors.blue900} name="info-outline" size={16} />
           <Text style={styles.noticeText}>{notice}</Text>
         </View>
       ) : null}
@@ -148,7 +148,7 @@ export function AlarmsScreen({ navigation }: Props) {
           return (
             <Pressable onPress={() => rootNavigation?.navigate('AlarmDetail', { alarmId: item.id, alarm: item })} style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}>
               <View style={[styles.iconTile, { backgroundColor: severityTone.tile }]}>
-                <Ionicons color={severityTone.text} name={iconMap[item.severity]} size={18} />
+                <AppIcon color={severityTone.text} name={iconMap[item.severity]} size={18} />
               </View>
               <View style={styles.content}>
                 <View style={styles.headerRow}>
@@ -193,7 +193,7 @@ export function AlarmsScreen({ navigation }: Props) {
         }}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Ionicons color={colors.gray500} name="notifications-off-outline" size={28} />
+            <AppIcon color={colors.gray500} name="notifications-off" size={28} />
             <Text style={styles.emptyTitle}>No {selectedStatus} alarms yet</Text>
             <Text style={styles.emptyText}>
               {selectedStatus === 'open'

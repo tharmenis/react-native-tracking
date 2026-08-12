@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../../../shared/components/AppIcon';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -14,9 +14,9 @@ import { colors, radius, spacing, typography } from '../../../shared/theme/theme
 type Props = NativeStackScreenProps<RootStackParamList, 'AlarmDetail'>;
 
 const severityMap = {
-  high: { backgroundColor: colors.alertBg, color: colors.alertText, icon: 'warning-outline' as const },
-  low: { backgroundColor: colors.activeBg, color: colors.activeText, icon: 'checkmark-circle-outline' as const },
-  medium: { backgroundColor: colors.idleBg, color: colors.idleText, icon: 'time-outline' as const },
+  high: { backgroundColor: colors.alertBg, color: colors.alertText, icon: 'warning' as const },
+  low: { backgroundColor: colors.activeBg, color: colors.activeText, icon: 'check-circle' as const },
+  medium: { backgroundColor: colors.idleBg, color: colors.idleText, icon: 'schedule' as const },
 };
 
 const statusMap = {
@@ -99,7 +99,7 @@ export function AlarmDetailScreen({ navigation, route }: Props) {
       ) : null}
       {notice ? (
         <View style={styles.noticeBanner}>
-          <Ionicons color={colors.blue900} name="information-circle-outline" size={16} />
+          <AppIcon color={colors.blue900} name="info-outline" size={16} />
           <Text style={styles.noticeText}>{notice}</Text>
         </View>
       ) : null}
@@ -108,7 +108,7 @@ export function AlarmDetailScreen({ navigation, route }: Props) {
           <>
             <View style={styles.hero}>
               <View style={[styles.heroIcon, { backgroundColor: severityTone.backgroundColor }]}>
-                <Ionicons color={severityTone.color} name={severityTone.icon} size={22} />
+                <AppIcon color={severityTone.color} name={severityTone.icon} size={22} />
               </View>
               <View style={styles.heroContent}>
                 <Text style={styles.heroKicker}>Alarm {alarm.id}</Text>
@@ -136,7 +136,7 @@ export function AlarmDetailScreen({ navigation, route }: Props) {
           </>
         ) : (
           <View style={styles.emptyState}>
-            <Ionicons color={colors.gray500} name="notifications-off-outline" size={28} />
+            <AppIcon color={colors.gray500} name="notifications-off" size={28} />
             <Text style={styles.emptyTitle}>Alarm not found</Text>
             <Text style={styles.emptyText}>The selected alarm is not available in the current feed.</Text>
           </View>

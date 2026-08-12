@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../../../shared/components/AppIcon';
 import { DrawerScreenProps } from '@react-navigation/drawer';
 import { CompositeScreenProps } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -58,7 +58,7 @@ export function VehiclesScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      <AppHeader onMenuPress={navigation.openDrawer} rightAction={{ icon: 'swap-vertical-outline' }} title="Vehicles" />
+      <AppHeader onMenuPress={navigation.openDrawer} rightAction={{ icon: 'swap-vert' }} title="Vehicles" />
       {notice ? <Text style={styles.notice}>{notice}</Text> : null}
       <View style={styles.tabsRow}>
         <Pressable style={[styles.tab, styles.tabActive]}><Text style={[styles.tabText, styles.tabTextActive]}>All ({vehicleItems.length})</Text></Pressable>
@@ -101,7 +101,7 @@ export function VehiclesScreen({ navigation }: Props) {
           )}
         />
       )}
-      <Pressable style={styles.addButton}><Ionicons color={colors.white} name="add" size={18} /><Text style={styles.addText}>Add Vehicle</Text></Pressable>
+      <Pressable style={styles.addButton}><AppIcon color={colors.white} name="add" size={18} /><Text style={styles.addText}>Add Vehicle</Text></Pressable>
     </View>
   );
 }

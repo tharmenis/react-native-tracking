@@ -19,7 +19,7 @@ export function TripDetailScreen({ navigation, route }: Props) {
 
   return (
     <View style={styles.container}>
-      <AppHeader onBackPress={navigation.goBack} rightAction={{ icon: 'download-outline' }} title={trip.id} />
+      <AppHeader onBackPress={navigation.goBack} rightAction={{ icon: 'download' }} title={trip.id} />
       <ScrollView>
         <View style={styles.mapCard}>
           <View style={styles.tripPath} />

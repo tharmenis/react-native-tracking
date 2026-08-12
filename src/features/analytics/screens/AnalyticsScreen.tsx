@@ -39,7 +39,7 @@ const toneStyles = StyleSheet.create({
 export function AnalyticsScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
-      <AppHeader onMenuPress={navigation.openDrawer} rightAction={{ icon: 'download-outline' }} title="Analytics" />
+      <AppHeader onMenuPress={navigation.openDrawer} rightAction={{ icon: 'download' }} title="Analytics" />
       <View style={styles.content}>
         <View style={styles.kpiGrid}>
           {analytics.kpis.map((kpi) => (

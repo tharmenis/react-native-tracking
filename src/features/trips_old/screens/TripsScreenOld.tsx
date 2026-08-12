@@ -17,7 +17,7 @@ type Props = CompositeScreenProps<
 export function TripsScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
-      <AppHeader onMenuPress={navigation.openDrawer} rightAction={{ icon: 'download-outline' }} title="Trips" />
+      <AppHeader onMenuPress={navigation.openDrawer} rightAction={{ icon: 'download' }} title="Trips" />
       <View style={styles.pillsRow}>
         <View style={[styles.pill, styles.pillActive]}><Text style={[styles.pillText, styles.pillTextActive]}>Today</Text></View>
         <View style={styles.pill}><Text style={styles.pillText}>Yesterday</Text></View>

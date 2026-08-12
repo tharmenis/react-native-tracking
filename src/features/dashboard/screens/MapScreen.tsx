@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../../../shared/components/AppIcon';
 import { DrawerScreenProps } from '@react-navigation/drawer';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DrawerParamList } from '../../../app/navigation/types';
 import { fetchVehicles } from '../../fleet/api/vehicles';
-import { VehicleMarker } from '../components/VehicleMarker';
+import { VehicleMarker } from '../../../shared/components/VehicleMarker';
 import { colors, radius, shadows, spacing, typography } from '../../../shared/theme/theme';
 import { Vehicle } from '../../../shared/types/models';
 
@@ -217,18 +217,21 @@ export function MapScreen({ navigation }: Props) {
           {mappableVehicles.map((vehicle) => (
             <VehicleMarker
               key={vehicle.id}
-              vehicle={vehicle}
+              coordinate={{ latitude: vehicle.latitude!, longitude: vehicle.longitude! }}
+              heading={vehicle.heading}
+              title={`${vehicle.name} (${vehicle.plate})`}
+              description={`${vehicle.driver} · ${vehicle.meta}`}
             />
           ))}
         </MapView>
 
         <View style={styles.mapHeader}>
           <Pressable onPress={navigation.openDrawer} style={styles.menuButton}>
-            <Ionicons color={colors.gray900} name="menu" size={22} />
+            <AppIcon color={colors.gray900} name="menu" size={22} />
           </Pressable>
           <View style={styles.searchContainer}>
             <View style={styles.searchField}>
-              <Ionicons color={colors.gray500} name="search-outline" size={16} />
+              <AppIcon color={colors.gray500} name="search" size={16} />
               <TextInput
                 onBlur={() => {
                   setTimeout(() => setIsSearchFocused(false), 120);
@@ -243,7 +246,7 @@ export function MapScreen({ navigation }: Props) {
               />
               {searchQuery.length > 0 ? (
                 <Pressable hitSlop={8} onPress={() => setSearchQuery('')}>
-                  <Ionicons color={colors.gray500} name="close-circle" size={18} />
+                  <AppIcon color={colors.gray500} name="cancel" size={18} />
                 </Pressable>
               ) : null}
             </View>
@@ -274,7 +277,7 @@ export function MapScreen({ navigation }: Props) {
 
         {notice ? (
           <View style={styles.noticeBanner}>
-            <Ionicons color={colors.blue900} name="information-circle-outline" size={16} />
+            <AppIcon color={colors.blue900} name="info-outline" size={16} />
             <Text style={styles.noticeText}>{notice}</Text>
           </View>
         ) : null}
@@ -288,11 +291,11 @@ export function MapScreen({ navigation }: Props) {
 
         <View style={styles.zoomControls}>
           <Pressable onPress={() => zoomBy(0.5)} style={styles.zoomButton}>
-            <Ionicons color={colors.blue600} name="add" size={20} />
+            <AppIcon color={colors.blue600} name="add" size={20} />
           </Pressable>
           <View style={styles.zoomDivider} />
           <Pressable onPress={() => zoomBy(2)} style={styles.zoomButton}>
-            <Ionicons color={colors.blue600} name="remove" size={20} />
+            <AppIcon color={colors.blue600} name="remove" size={20} />
           </Pressable>
         </View>
 

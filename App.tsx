@@ -1,6 +1,6 @@
 import 'react-native-gesture-handler';
 
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
@@ -32,7 +32,7 @@ const navigationTheme = {
 export default function App() {
   const navigationRef = useNavigationContainerRef<RootStackParamList>();
   const [navigationReady, setNavigationReady] = useState(false);
-  const [fontsLoaded] = useFonts(Ionicons.font);
+  const [fontsLoaded] = useFonts(MaterialIcons.font);
 
   if (!fontsLoaded) {
     return null;

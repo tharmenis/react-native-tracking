@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../../../shared/components/AppIcon';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   View,
@@ -13,6 +13,7 @@ import {
 import MapView, { Polyline, Marker } from 'react-native-maps';
 import { Trip } from '../../../shared/types/models';
 import { AppHeader } from '../../../shared/components/AppHeader';
+import { VehicleMarker } from '../../../shared/components/VehicleMarker';
 import { colors } from '../../../shared/theme/theme';
 import { DrawerParamList, RootStackParamList } from '../../../app/navigation/types';
 import { getTripDurationMin } from '../utils/tripDuration';
@@ -143,10 +144,11 @@ const TripDetailsScreen = ({ route, navigation }: TripDetailsScreenProps) => {
   return (
     <View style={styles.container}>
        
-       <AppHeader onBackPress={navigation.goBack} rightAction={{ icon: 'create-outline' }} title="Trip Detail" />
+       <AppHeader onBackPress={navigation.goBack} rightAction={{ icon: 'edit' }} title="Trip Detail" />
 
-      {/* Map View */}
+     
         <View style={isMapFullScreen ? styles.mapFullscreenContainer : styles.mapContainer}>
+         {/* Map view */}
         <MapView
           style={styles.map}
           initialRegion={{
@@ -163,9 +165,8 @@ const TripDetailsScreen = ({ route, navigation }: TripDetailsScreenProps) => {
               longitude: point.lng,
             }))}
             strokeWidth={4}
-            strokeColor="#007AFF"
+            strokeColor={colors.blue600}
           />
-          
           {/* Start marker */}
           {trip.path.length > 0 && (
             <Marker
@@ -176,7 +177,6 @@ const TripDetailsScreen = ({ route, navigation }: TripDetailsScreenProps) => {
               title="Start"
             />
           )}
-          
           {/* End marker */}
           {trip.path.length > 0 && (
             <Marker
@@ -187,14 +187,10 @@ const TripDetailsScreen = ({ route, navigation }: TripDetailsScreenProps) => {
               title="End"
             />
           )}
-          
           {/* Current position marker */}
           {currentPoint && (
-            <Marker
-              coordinate={{
-                latitude: currentPoint.lat,
-                longitude: currentPoint.lng,
-              }}
+            <VehicleMarker
+              coordinate={{ latitude: currentPoint.lat, longitude: currentPoint.lng }}
               title="Current Position"
             />
           )}
@@ -206,21 +202,23 @@ const TripDetailsScreen = ({ route, navigation }: TripDetailsScreenProps) => {
           ]}
           onPress={toggleMapFullScreen}
         >
-          <Ionicons name={isMapFullScreen ? 'contract' : 'expand'} size={24} color="#fff" />
+          <AppIcon name={isMapFullScreen ? 'fullscreen-exit' : 'fullscreen'} size={24} color="#fff" />
         </TouchableOpacity>
-      </View> {/* End of map fullscreen container */}
+        {/* End of Map view */}
+      </View> 
 
-       {/* Playback Controls */}
+       
       <View
         style={isMapFullScreen ? styles.controlsContainerFullscreen : styles.controlsContainer}
         onLayout={handleControlsLayout}
       >
+        {/* Playback Controls */}
         <TouchableOpacity 
           style={styles.playButton} 
           onPress={handlePlayPause}
         >
           <View style={{ minWidth: 25 }}>
-          <Ionicons name={isPlaying ? 'pause' : 'play'} size={20} color="#fff" />
+          <AppIcon name={isPlaying ? 'pause' : 'play-arrow'} size={20} color="#fff" />
           </View>
           <Text style={styles.playButtonText}>
             {isPlaying ? ' PAUSE' : ' PLAY'}
@@ -282,8 +280,9 @@ const TripDetailsScreen = ({ route, navigation }: TripDetailsScreenProps) => {
         </View>
       </View>
 
-      {/* Stats Panel */}
+     
       <View style={styles.statsContainer}>
+        {/* Stats Panel */}
         <Text style={styles.statsTitle}>Trip Statistics</Text>
         
         <View style={styles.statRow}>

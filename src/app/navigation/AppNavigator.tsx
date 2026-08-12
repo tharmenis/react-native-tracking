@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon, AppIconName } from '../../shared/components/AppIcon';
 import {
   DrawerContentComponentProps,
   DrawerContentScrollView,
@@ -38,17 +38,17 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
     {
       title: 'Monitoring',
       items: [
-        { label: 'Live Map', route: 'LiveMap', icon: 'location-outline' },
-        { label: 'Alarms', route: 'Alarms', icon: 'notifications-outline', badge: alarmBadgeCount > 0 ? `${alarmBadgeCount}` : undefined },
-        { label: 'Vehicles', route: 'Vehicles', icon: 'car-outline' },
+        { label: 'Live Map', route: 'LiveMap', icon: 'place' },
+        { label: 'Alarms', route: 'Alarms', icon: 'notifications', badge: alarmBadgeCount > 0 ? `${alarmBadgeCount}` : undefined },
+        { label: 'Vehicles', route: 'Vehicles', icon: 'directions-car' },
       ],
     },
     {
       title: 'Management',
       items: [
-        { label: 'Drivers', route: 'Drivers', icon: 'people-outline' },
-        { label: 'Trips', route: 'Trips', icon: 'trail-sign-outline' },
-        { label: 'Analytics', route: 'Analytics', icon: 'bar-chart-outline' },
+        { label: 'Drivers', route: 'Drivers', icon: 'people' },
+        { label: 'Trips', route: 'Trips', icon: 'route' },
+        { label: 'Analytics', route: 'Analytics', icon: 'bar-chart' },
       ],
     },
   ];
@@ -73,7 +73,7 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
               <DrawerItem
                 focused={focused}
                 icon={({ color, size }) => (
-                  <Ionicons color={color} name={item.icon as keyof typeof Ionicons.glyphMap} size={size} />
+                  <AppIcon color={color} name={item.icon as AppIconName} size={size} />
                 )}
                 key={item.route}
                 label={() => (
@@ -103,7 +103,7 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
           }}
           style={styles.settingsButton}
         >
-          <Ionicons color={colors.gray700} name="log-out-outline" size={20} />
+          <AppIcon color={colors.gray700} name="logout" size={20} />
           <Text style={styles.settingsText}>Sign Out</Text>
         </Pressable>
       </View>

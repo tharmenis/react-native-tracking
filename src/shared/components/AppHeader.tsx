@@ -1,11 +1,11 @@
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon, AppIconName } from './AppIcon';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, spacing, typography } from '../theme/theme';
 
 type HeaderAction = {
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: AppIconName;
   onPress?: () => void;
 };
 
@@ -21,7 +21,7 @@ export function AppHeader({ title, onMenuPress, onBackPress, rightAction }: AppH
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
       <View style={styles.container}>
         <Pressable onPress={onBackPress ?? onMenuPress} style={styles.iconButton}>
-          <Ionicons
+          <AppIcon
             color={colors.gray900}
             name={onBackPress ? 'arrow-back' : 'menu'}
             size={22}
@@ -30,7 +30,7 @@ export function AppHeader({ title, onMenuPress, onBackPress, rightAction }: AppH
         <Text style={styles.title}>{title}</Text>
         {rightAction ? (
           <Pressable onPress={rightAction.onPress} style={styles.iconButton}>
-            <Ionicons color={colors.blue600} name={rightAction.icon} size={20} />
+            <AppIcon color={colors.blue600} name={rightAction.icon} size={20} />
           </Pressable>
         ) : (
           <View style={styles.iconPlaceholder} />

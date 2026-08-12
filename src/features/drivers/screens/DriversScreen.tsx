@@ -24,7 +24,7 @@ const avatarStyles = StyleSheet.create({
 export function DriversScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
-      <AppHeader onMenuPress={navigation.openDrawer} rightAction={{ icon: 'swap-vertical-outline' }} title="Drivers" />
+      <AppHeader onMenuPress={navigation.openDrawer} rightAction={{ icon: 'swap-vert' }} title="Drivers" />
       <View style={styles.tabsRow}>
         <Pressable style={[styles.tab, styles.tabActive]}><Text style={[styles.tabText, styles.tabTextActive]}>All (8)</Text></Pressable>
         <Pressable style={styles.tab}><Text style={styles.tabText}>On duty (6)</Text></Pressable>

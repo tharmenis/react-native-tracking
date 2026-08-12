@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon, AppIconName } from '../../../shared/components/AppIcon';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -17,15 +17,15 @@ type ActionTarget = {
 type ActionItem = {
   id: string;
   label: string;
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: AppIconName;
   target?: ActionTarget;
 };
 
 const actionTargets: ActionItem[] = [
-  { id: 'track', label: 'Track', icon: 'location-outline', target: { screen: 'LiveMap' } },
-  { id: 'trips', label: 'Trips', icon: 'trail-sign-outline', target: { screen: 'Trips' } },
-  { id: 'alerts', label: 'Alarms', icon: 'notifications-outline', target: { screen: 'Alarms' } },
-  { id: 'more', label: 'More', icon: 'ellipsis-horizontal-circle-outline' },
+  { id: 'track', label: 'Track', icon: 'place', target: { screen: 'LiveMap' } },
+  { id: 'trips', label: 'Trips', icon: 'route', target: { screen: 'Trips' } },
+  { id: 'alerts', label: 'Alarms', icon: 'notifications', target: { screen: 'Alarms' } },
+  { id: 'more', label: 'More', icon: 'more-horiz' },
 ];
 
 export function VehicleDetailScreen({ navigation, route }: Props) {
@@ -34,11 +34,11 @@ export function VehicleDetailScreen({ navigation, route }: Props) {
 
   return (
     <View style={styles.container}>
-      <AppHeader onBackPress={navigation.goBack} rightAction={{ icon: 'create-outline' }} title="Vehicle Detail" />
+      <AppHeader onBackPress={navigation.goBack} rightAction={{ icon: 'edit' }} title="Vehicle Detail" />
       <ScrollView>
         <View style={styles.hero}>
           <View style={styles.heroIcon}>
-            <Ionicons color={colors.white} name="car-outline" size={24} />
+            <AppIcon color={colors.white} name="directions-car" size={24} />
           </View>
           <View style={styles.heroInfo}>
             <Text style={styles.heroName}>{vehicle.name}</Text>
@@ -61,7 +61,7 @@ export function VehicleDetailScreen({ navigation, route }: Props) {
           {recentAlarms.map((alarm) => (
             <View key={alarm.id} style={styles.alertCard}>
               <View style={[styles.alertIconTile, alarm.severity === 'high' ? styles.alertDanger : styles.alertWarning]}>
-                <Ionicons color={alarm.severity === 'high' ? colors.alert : colors.idle} name={alarm.severity === 'high' ? 'warning-outline' : 'time-outline'} size={18} />
+                <AppIcon color={alarm.severity === 'high' ? colors.alert : colors.idle} name={alarm.severity === 'high' ? 'warning' : 'schedule'} size={18} />
               </View>
               <View style={styles.alertContent}>
                 <Text style={styles.alertTitle}>{alarm.title}</Text>
@@ -83,7 +83,7 @@ export function VehicleDetailScreen({ navigation, route }: Props) {
               }}
               style={styles.actionTile}
             >
-              <Ionicons color={colors.blue600} name={action.icon} size={20} />
+              <AppIcon color={colors.blue600} name={action.icon} size={20} />
               <Text style={styles.actionLabel}>{action.label}</Text>
             </Pressable>
           ))}

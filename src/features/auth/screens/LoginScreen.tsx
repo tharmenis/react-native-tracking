@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { AppIcon } from '../../../shared/components/AppIcon';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useState, useEffect } from 'react';
 import * as WebBrowser from 'expo-web-browser';
@@ -105,7 +105,7 @@ export function LoginScreen({ navigation }: Props) {
     <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
       <View style={styles.container}>
         <View style={styles.logoTile}>
-          <Ionicons color={colors.white} name="location-outline" size={30} />
+          <AppIcon color={colors.white} name="place" size={30} />
         </View>
         <Text style={styles.title}>FleetTrack</Text>
         <Text style={styles.subtitle}>Sign in to manage your fleet</Text>
