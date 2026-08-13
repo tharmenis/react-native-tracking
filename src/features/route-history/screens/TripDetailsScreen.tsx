@@ -165,7 +165,7 @@ const TripDetailsScreen = ({ route, navigation }: TripDetailsScreenProps) => {
               longitude: point.lng,
             }))}
             strokeWidth={4}
-            strokeColor={colors.blue600}
+            strokeColor={colors.gray200}
           />
           {/* Start marker */}
           {trip.path.length > 0 && (

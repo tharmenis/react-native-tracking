@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Shell(npx tsc --noEmit 2 >& 1)",
+      "Shell(grep:*)",
+      "Shell(node -e ' const W=52.4; const p=\"m 40.806862,33.908023 c -3.58073,5.29257 -14.348533,18.526424 -14.348533,18.526424 0,0 -10.767871,-13.233854 -14.348538,-18.526424 C 5.0576793,23.484351 6.0126623,13.212617 13.287194,5.9380875 16.92446,2.3008218 21.691425,0.48221971 26.458391,0.48221971 c 4.766967,0 9.533931,1.81860209 13.171197,5.45586779 7.274404,7.2745295 8.229388,17.5462635 1.177274,27.9699355 z\"; // tokenize into numbers, dividing each by W const rel = p.replace(/-?\\d+(\\.\\d+)?/g, n => (parseFloat(n)/W).toFixed(5)); console.log(rel); ')",
+      "Shell(awk:*)",
+      "Shell(adb:*)",
+      "Shell(curl -s -o /dev/null -w \"%{http_code}\" http://10.0.2.2:3000/health 2>&1; echo \" <- /health\"; curl -s http://10.0.2.2:3000/health 2>&1 | head -5)",
+      "Shell(curl -s -m 8 -o /dev/null -w \"%{http_code}\" http://localhost:3000/health 2>&1; echo \" <- localhost:3000/health\"; echo \"---\"; curl -s -m 8 -o /dev/null -w \"%{http_code}\" http://10.0.2.2:3000/ 2>&1; echo \" <- 10.0.2.2:3000/\")",
+      "Shell(curl -s -m 8 http://localhost:3000/auth/resolve-realm -X POST -H Content-Type: application/json -d {\"orgSlug\":\"test\"} 2 >& 1)",
+      "Shell(adb shell pm clear com.android.chrome 2>&1; echo \"exit: $?\")"
+    ],
+    "deny": [],
+    "defaultMode": "default"
+  }
+}

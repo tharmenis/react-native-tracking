@@ -1,37 +1,48 @@
-import { useState, useEffect, useCallback } from 'react';
-import * as Keychain from 'react-native-keychain';
-import { buildApiUrl } from '../shared/api/config';
+import { useState, useEffect, useCallback } from "react";
+import * as Keychain from "react-native-keychain";
+import { buildApiUrl } from "../shared/api/config";
 import {
   REALM_RESOLVE_PATH,
   REDIRECT_SCHEME,
   DEFAULT_OIDC_SCOPES,
   RealmInfo,
   TOKEN_STORAGE_SERVICE,
-} from './authConfig';
+} from "./authConfig";
 
 type StoredTokens = {
   accessToken: string;
   refreshToken?: string;
+  idToken?: string;
   expiresAt?: number; // epoch ms
   realm?: RealmInfo;
+  orgSlug?: string; // last successfully resolved org slug
 };
 
 function nowMs() {
   return Date.now();
 }
 
-async function saveTokens(tokens: StoredTokens) {
-  await Keychain.setGenericPassword('pcp', JSON.stringify(tokens), {
+async function saveTokens(tokens: Partial<StoredTokens>) {
+  await Keychain.setGenericPassword("pcp", JSON.stringify(tokens), {
     service: TOKEN_STORAGE_SERVICE,
   });
 }
 
 async function loadTokens(): Promise<StoredTokens | null> {
-  const creds = await Keychain.getGenericPassword({ service: TOKEN_STORAGE_SERVICE });
+  const creds = await Keychain.getGenericPassword({
+    service: TOKEN_STORAGE_SERVICE,
+  });
   if (!creds) return null;
   try {
-    return JSON.parse(creds.password) as StoredTokens;
+    const parsed = JSON.parse(creds.password) as StoredTokens;
+    console.log("[loadTokens] parsed", {
+      hasAccessToken: !!parsed.accessToken,
+      hasRealm: !!parsed.realm,
+      orgSlug: parsed.orgSlug,
+    });
+    return parsed;
   } catch (e) {
+    console.log("[loadTokens] parse error", e);
     return null;
   }
 }
@@ -47,7 +58,9 @@ async function clearTokens() {
 export function useAuth() {
   const [realm, setRealm] = useState<RealmInfo | null>(null);
   const [tokens, setTokens] = useState<StoredTokens | null>(null);
+  const [orgSlug, setOrgSlug] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [hasCachedRealm, setHasCachedRealm] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -56,7 +69,12 @@ export function useAuth() {
       if (!mounted) return;
       if (stored) {
         setTokens(stored);
-        if (stored.realm) setRealm(stored.realm);
+        if (stored.realm) {
+          setRealm(stored.realm);
+          setHasCachedRealm(true);
+        }
+
+        if (stored.orgSlug) setOrgSlug(stored.orgSlug);
       }
       setLoading(false);
     })();
@@ -67,39 +85,47 @@ export function useAuth() {
 
   const resolveRealm = useCallback(async (orgSlug: string) => {
     const url = buildApiUrl(REALM_RESOLVE_PATH);
-    
     const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ orgSlug }),
     });
-   
-    if (!res.ok) {
-      const text = await res.text().catch(() => '');
-     
-    }
+
+    const text = await res.text().catch(() => "");
 
     if (res.status === 404) {
-      const payload = JSON.parse((await res.text().catch(() => '{}')) || '{}');
-      throw new Error(payload?.error ?? 'unknown_organization');
+      let payload: { error?: string } = {};
+      try {
+        payload = JSON.parse(text || "{}");
+      } catch {
+        // ignore malformed body
+      }
+      throw new Error(payload?.error ?? "unknown_organization");
     }
 
     if (res.status === 429) {
-      throw new Error('rate_limited');
+      throw new Error("rate_limited");
     }
 
     if (!res.ok) {
-      const text = await res.text().catch(() => '');
       throw new Error(`Realm resolution failed: ${res.status} ${text}`);
     }
 
-    const json = await res.json();
+    const json = JSON.parse(text);
     const info: RealmInfo = {
       realmName: json.realmName,
       keycloakBaseUrl: json.keycloakBaseUrl,
-      clientId: json.clientId ?? 'pcp-tracking-app',
+      clientId: json.clientId ?? "pcp-tracking-app",
     };
+
+    // Persist the realm itself (not just the slug) so it survives an app
+    // close even if the user hasn't completed login yet, and so the next
+    // launch can skip re-resolving over the network.
+    const stored = await loadTokens();
+    await saveTokens({ ...(stored ?? {}), orgSlug, realm: info });
+
     setRealm(info);
+    setOrgSlug(orgSlug);
     return info;
   }, []);
 
@@ -112,38 +138,53 @@ export function useAuth() {
     codeVerifier: string;
     redirectUri: string;
   }) {
-    if (!realm) throw new Error('No realm configured');
+    if (!realm) throw new Error("No realm configured");
 
     const tokenUrl = `${realm.keycloakBaseUrl}/realms/${realm.realmName}/protocol/openid-connect/token`;
 
     const body = new URLSearchParams();
-    body.append('grant_type', 'authorization_code');
-    body.append('client_id', realm.clientId);
-    body.append('code', code);
-    body.append('redirect_uri', redirectUri);
-    body.append('code_verifier', codeVerifier);
+    body.append("grant_type", "authorization_code");
+    body.append("client_id", realm.clientId);
+    body.append("code", code);
+    body.append("redirect_uri", redirectUri);
+    body.append("code_verifier", codeVerifier);
 
     const res = await fetch(tokenUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: body.toString(),
     });
 
     if (!res.ok) {
-      const text = await res.text().catch(() => '');
+      const text = await res.text().catch(() => "");
       throw new Error(`Token exchange failed: ${res.status} ${text}`);
     }
 
     const json = await res.json();
     const at = json.access_token as string;
     const rt = json.refresh_token as string | undefined;
+    const idToken = json.id_token as string | undefined;
     const expiresIn = json.expires_in as number | undefined;
+
+    console.log("[exchangeCodeForTokens] RESPONSE keys:", Object.keys(json));
+    console.log(
+      "[exchangeCodeForTokens] has id_token:",
+      !!idToken,
+      "has access:",
+      !!at,
+    );
+    console.log("[exchangeCodeForTokens] orgSlug at exchange:", orgSlug);
 
     const stored: StoredTokens = {
       accessToken: at,
       refreshToken: rt,
+      idToken,
       expiresAt: expiresIn ? nowMs() + expiresIn * 1000 : undefined,
       realm,
+      // Persist the slug from in-memory state (set by resolveRealm), which is
+      // reliable — re-reading from Keychain right after a write can race with
+      // the async DataStore flush and return a stale entry without the slug.
+      orgSlug: orgSlug ?? undefined,
     };
 
     await saveTokens(stored);
@@ -167,13 +208,13 @@ export function useAuth() {
 
     const tokenUrl = `${realm.keycloakBaseUrl}/realms/${realm.realmName}/protocol/openid-connect/token`;
     const body = new URLSearchParams();
-    body.append('grant_type', 'refresh_token');
-    body.append('client_id', realm.clientId);
-    body.append('refresh_token', tokens.refreshToken);
+    body.append("grant_type", "refresh_token");
+    body.append("client_id", realm.clientId);
+    body.append("refresh_token", tokens.refreshToken);
 
     const res = await fetch(tokenUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: body.toString(),
     });
 
@@ -186,13 +227,16 @@ export function useAuth() {
     const json = await res.json();
     const at = json.access_token as string;
     const rt = json.refresh_token as string | undefined;
+    const idToken = json.id_token as string | undefined;
     const expiresIn = json.expires_in as number | undefined;
 
     const stored: StoredTokens = {
       accessToken: at,
       refreshToken: rt ?? tokens.refreshToken,
+      idToken: idToken ?? tokens.idToken,
       expiresAt: expiresIn ? nowMs() + expiresIn * 1000 : undefined,
       realm,
+      orgSlug: tokens.orgSlug,
     };
 
     await saveTokens(stored);
@@ -205,42 +249,70 @@ export function useAuth() {
     return maybe?.accessToken ?? null;
   }, [tokens, realm]);
 
-  const logout = useCallback(async (callEndSession = false) => {
-    // Optionally call Keycloak end-session endpoint
-    if (callEndSession && tokens?.accessToken && realm) {
-      try {
-        const endUrl = `${realm.keycloakBaseUrl}/realms/${realm.realmName}/protocol/openid-connect/logout`;
-        const body = new URLSearchParams();
-        body.append('client_id', realm.clientId);
-        if (tokens.refreshToken) body.append('refresh_token', tokens.refreshToken);
-        await fetch(endUrl, { method: 'POST', body: body.toString() });
-      } catch (e) {
-        // ignore
+  const logout = useCallback(
+    async (callEndSession = false) => {
+      // Optionally call Keycloak end-session endpoint
+      if (callEndSession && tokens?.accessToken && realm) {
+        try {
+          const endUrl = `${realm.keycloakBaseUrl}/realms/${realm.realmName}/protocol/openid-connect/logout`;
+          const body = new URLSearchParams();
+          body.append("client_id", realm.clientId);
+          // id_token_hint is required for Keycloak to actually revoke the
+          // browser session — without it the cookie survives and the next
+          // login silently reuses the session.
+          if (tokens.idToken) body.append("id_token_hint", tokens.idToken);
+          if (tokens.refreshToken)
+            body.append("refresh_token", tokens.refreshToken);
+          console.log("[logout] end_session url:", endUrl);
+          console.log(
+            "[logout] has id_token_hint:",
+            !!tokens.idToken,
+            "has refresh:",
+            !!tokens.refreshToken,
+          );
+          const logoutRes = await fetch(endUrl, {
+            method: "POST",
+            body: body.toString(),
+          });
+          console.log("[logout] end_session status:", logoutRes.status);
+        } catch (e) {
+          console.log("[logout] end_session error:", e);
+        }
+      } else {
+        console.log("[logout] SKIPPED end_session", {
+          callEndSession,
+          hasTokens: !!tokens?.accessToken,
+          hasRealm: !!realm,
+        });
       }
-    }
 
-    await clearTokens();
-    setTokens(null);
-    setRealm(null);
-  }, [tokens, realm]);
+      await clearTokens();
+      setTokens(null);
+      setRealm(null);
+      setOrgSlug(null);
+    },
+    [tokens, realm],
+  );
 
   const authFetch = useCallback(
     async (input: RequestInfo, init?: RequestInit) => {
       const at = await getAccessToken();
-      if (!at) throw new Error('Not authenticated');
+      if (!at) throw new Error("Not authenticated");
 
       const headers = new Headers(init?.headers ?? {});
-      headers.set('Authorization', `Bearer ${at}`);
+      headers.set("Authorization", `Bearer ${at}`);
       const merged: RequestInit = { ...(init ?? {}), headers };
       return fetch(input, merged);
     },
-    [getAccessToken]
+    [getAccessToken],
   );
 
   return {
     realm,
     tokens,
+    orgSlug,
     loading,
+    hasCachedRealm,
     resolveRealm,
     exchangeCodeForTokens,
     getAccessToken,
