@@ -15,35 +15,44 @@ const DISPLAY_HEIGHT = PIN_HEIGHT * PIN_SCALE; // ~37
 const PIN_PATH =
   "m 40.806862,33.908023 c -3.58073,5.29257 -14.348533,18.526424 -14.348533,18.526424 0,0 -10.767871,-13.233854 -14.348538,-18.526424 C 5.0576793,23.484351 6.0126623,13.212617 13.287194,5.9380875 16.92446,2.3008218 21.691425,0.48221971 26.458391,0.48221971 c 4.766967,0 9.533931,1.81860209 13.171197,5.45586779 7.274404,7.2745295 8.229388,17.5462635 1.177274,27.9699355 z";
 
+type VehicleMarkerVariant = "default" | "inactive" | "selected";
+
 type VehicleMarkerProps = {
   coordinate: { latitude: number; longitude: number };
   heading?: number;
-  title?: string;
-  description?: string;
+  signal?: number;
   onPress?: () => void;
   /** Material icon shown in the pin's head. */
   icon?: AppIconName;
+  /** Styling variant: default (active), inactive (off/greyed), selected. */
+  variant?: VehicleMarkerVariant;
+};
+
+// Per-variant colors so styling stays centralized in this component.
+const VARIANT_COLORS: Record<VehicleMarkerVariant, { pin: string; icon: string; arrow: string }> = {
+  default: { pin: colors.blue600, icon: colors.blue600, arrow: colors.alert },
+  inactive: { pin: colors.gray200, icon: colors.gray500, arrow: colors.gray200 },
+  selected: { pin: colors.activeText, icon: colors.activeText, arrow: colors.alert },
 };
 
 function VehicleMarkerBase({
   coordinate,
   heading,
-  title,
-  description,
   onPress,
   icon = "directions-car",
+  variant = "default",
 }: VehicleMarkerProps) {
   if (coordinate.latitude === undefined || coordinate.longitude === undefined) {
     return null;
   }
 
+  const palette = VARIANT_COLORS[variant];
+
   return (
     <Marker
       anchor={{ x: 0.5, y: 1 }}
       coordinate={coordinate}
-      description={description}
       onPress={onPress}
-      title={title}
       tracksViewChanges={true}
     >
       <View style={styles.markerBase}>
@@ -52,9 +61,9 @@ function VehicleMarkerBase({
           viewBox={`0 0 ${PIN_WIDTH} ${PIN_HEIGHT}`}
           width={DISPLAY_WIDTH}
         >
-          <Path d={PIN_PATH} fill={colors.blue600} />
+          <Path d={PIN_PATH} fill={palette.pin} />
         </Svg>
-        
+
         <View
           style={[
             styles.rotatingHolder,
@@ -70,11 +79,11 @@ function VehicleMarkerBase({
             viewBox="0 0 12 9"
             width={12}
           >
-            <Polygon points="6,0 12,9 0,9" fill={colors.alert} />
+            <Polygon points="6,0 12,9 0,9" fill={palette.arrow} />
           </Svg>
         </View>
         <View style={styles.iconBadge}>
-          <AppIcon color={colors.blue600} name={icon} size={14} />
+          <AppIcon color={palette.icon} name={icon} size={14} />
         </View>
       </View>
     </Marker>
@@ -91,10 +100,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     position: "relative",
     overflow: "visible",
-    
-   
-   
-  
   },
   iconBadge: {
     position: "absolute",
@@ -116,7 +121,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.blue100,
- overflow: "visible",
+    overflow: "visible",
     alignItems: "center",
     justifyContent: "center",
     zIndex: 4,

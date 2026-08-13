@@ -221,7 +221,6 @@ function extractCollection(payload: unknown): unknown[] {
 function mapRemoteVehicle(item: unknown, index: number): Vehicle | null {
   const record = asRecord(item);
 
- 
   if (!record) {
     return null;
   }
@@ -232,12 +231,9 @@ function mapRemoteVehicle(item: unknown, index: number): Vehicle | null {
   const name =
     asString(record.name ?? record.label ?? record.vehicleName) ||
     `Vehicle ${index + 1}`;
-  const plate =
-    asString(
-      record.plate ?? record.licensePlate ?? record.registrationNumber,
-    ) || "Unknown plate";
-  const driver =
-    asString(record.driver ?? record.driverName ?? record.assignedDriver) ||
+  
+  const type =
+    asString(record.type) ||
     "Unassigned";
   const statusValue = asString(
     record.status ?? record.state ?? record.connectionStatus,
@@ -253,13 +249,13 @@ function mapRemoteVehicle(item: unknown, index: number): Vehicle | null {
   const lastSeen = asString(
     record.lastSeen ?? record.updatedAt ?? record.timestamp,
   );
+  const signal = asNumber(record.signal ?? 0);
   const imei = asString(record.imei ?? record.IMEI ?? record.deviceImei ?? record.serialNumber) || "Unknown IMEI";
 
   return {
     id,
     name,
-    plate,
-    driver,
+    type,
     meta: formatMeta(record),
     status: toVehicleStatus(statusValue),
     imei,
@@ -269,6 +265,7 @@ function mapRemoteVehicle(item: unknown, index: number): Vehicle | null {
     speed: speed ?? undefined,
     connected: connected ?? undefined,
     lastSeen: lastSeen || undefined,
+    signal: signal ?? undefined,
   };
 }
 
@@ -309,32 +306,21 @@ export async function fetchVehicles(
 
   const fullUrl = buildApiUrl(apiConfig.vehiclesPath);
 
-  // if (__DEV__) {
-  //   const requestDetails = {
-  //     method: apiConfig.vehiclesMethod,
-  //     url: fullUrl,
-  //     headers: {
-  //       Accept: "application/json",
-  //     },
-  //     body: null,
-  //     signalAborted: signal?.aborted ?? false,
-  //   };
-
-  //   console.log("[api/vehicles] request", requestDetails);
-  // }
 
   try {
     const { requestJson } = await import("../../../shared/api/request");
     const payload = await requestJson(apiConfig.vehiclesPath, {
       method: apiConfig.vehiclesMethod,
       headers: { Accept: "application/json" },
-      signal,
+  
     });
 
     const remoteVehicles = extractCollection(payload)
       .map((item, index) => mapRemoteVehicle(item, index))
       .filter((item): item is Vehicle => item !== null);
     
+
+  
     return {
       vehicles: remoteVehicles,
       source: "remote",

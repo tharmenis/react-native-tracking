@@ -7,7 +7,7 @@ import {
   useAuthRequest,
   useAutoDiscovery,
 } from "expo-auth-session";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { RootStackParamList } from "../../../app/navigation/types";
@@ -158,7 +158,7 @@ export function LoginScreen({ navigation }: Props) {
     <SafeAreaView edges={["top", "bottom"]} style={styles.safeArea}>
       <View style={styles.container}>
         <View style={styles.logoTile}>
-          <AppIcon color={colors.white} name="place" size={30} />
+          <Image style={styles.logo} source={require("../../../../assets/images/company-logo.png")} />
         </View>
         <Text style={styles.title}>PC PROJECT TRACKING</Text>
         <Text style={styles.subtitle}>Sign in to manage your fleet</Text>
@@ -254,6 +254,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: spacing.xxl,
   },
+  logo: {
+    width: 45,
+    height: 45,
+    resizeMode: "contain",
+  },
   footer: {
     color: colors.gray500,
     fontSize: typography.body,
@@ -319,8 +324,8 @@ const styles = StyleSheet.create({
   logoTile: {
     alignItems: "center",
     alignSelf: "center",
-    backgroundColor: colors.blue600,
-    borderRadius: radius.lg,
+    backgroundColor: colors.gray50,
+    borderRadius: radius.xl,
     height: 64,
     justifyContent: "center",
     marginBottom: spacing.xl,

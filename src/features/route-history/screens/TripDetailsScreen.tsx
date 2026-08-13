@@ -14,6 +14,7 @@ import MapView, { Polyline, Marker } from 'react-native-maps';
 import { Trip } from '../../../shared/types/models';
 import { AppHeader } from '../../../shared/components/AppHeader';
 import { VehicleMarker } from '../../../shared/components/VehicleMarker';
+import { ZoomControls } from '../../../shared/components/ZoomControls';
 import { colors } from '../../../shared/theme/theme';
 import { DrawerParamList, RootStackParamList } from '../../../app/navigation/types';
 import { getTripDurationMin } from '../utils/tripDuration';
@@ -38,6 +39,7 @@ const TripDetailsScreen = ({ route, navigation }: TripDetailsScreenProps) => {
   const [isMapFullScreen, setIsMapFullScreen] = useState(false);
   const [trackWidth, setTrackWidth] = useState(0);
   const [controlsHeight, setControlsHeight] = useState(0);
+  const mapRef = useRef<MapView | null>(null);
 
   const toggleMapFullScreen = () => {
     setIsMapFullScreen((prev) => !prev);
@@ -150,6 +152,7 @@ const TripDetailsScreen = ({ route, navigation }: TripDetailsScreenProps) => {
         <View style={isMapFullScreen ? styles.mapFullscreenContainer : styles.mapContainer}>
          {/* Map view */}
         <MapView
+          ref={mapRef}
           style={styles.map}
           initialRegion={{
             latitude: currentPoint?.lat || 37.7749,
@@ -191,10 +194,10 @@ const TripDetailsScreen = ({ route, navigation }: TripDetailsScreenProps) => {
           {currentPoint && (
             <VehicleMarker
               coordinate={{ latitude: currentPoint.lat, longitude: currentPoint.lng }}
-              title="Current Position"
             />
           )}
         </MapView>
+        <ZoomControls mapRef={mapRef} />
           <TouchableOpacity
           style={[
             styles.fullscreenButton,

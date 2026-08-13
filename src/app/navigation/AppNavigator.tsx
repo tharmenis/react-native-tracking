@@ -20,7 +20,6 @@ import { VehicleDetailScreen } from '../../features/fleet/screens/VehicleDetailS
 import { VehiclesScreen } from '../../features/fleet/screens/VehiclesScreen';
 import { TripDetailsScreen } from '../../features/route-history/screens/TripDetailsScreen';
 import { TripsScreen } from '../../features/route-history/screens/TripsScreen';
-import { currentUser } from '../../shared/data/mockData';
 import { usePushNotifications } from '../../shared/notifications/PushNotificationsProvider';
 import useAuth from '../../auth/useAuth';
 import { colors, radius, spacing, typography } from '../../shared/theme/theme';
@@ -57,10 +56,12 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
     <DrawerContentScrollView contentContainerStyle={styles.drawerScroll} {...props}>
       <View style={styles.drawerHeader}>
         <View style={styles.drawerAvatar}>
-          <Text style={styles.drawerAvatarText}>{currentUser.initials}</Text>
+          <Text style={styles.drawerAvatarText}>{auth.user.initials}</Text>
         </View>
-        <Text style={styles.drawerName}>{currentUser.name}</Text>
-        <Text style={styles.drawerRole}>{currentUser.role} · {currentUser.company}</Text>
+        <Text style={styles.drawerName}>{auth.user.displayName}</Text>
+        <Text style={styles.drawerRole}>
+         Organization: {auth.realm?.realmName ?? auth.orgSlug ?? 'No organization selected'}
+        </Text>
       </View>
 
       {sections.map((section) => (
@@ -216,6 +217,7 @@ const styles = StyleSheet.create({
     color: colors.gray500,
     fontSize: typography.caption,
     marginTop: 2,
+    textTransform: 'uppercase',
   },
   drawerScene: {
     backgroundColor: colors.gray50,

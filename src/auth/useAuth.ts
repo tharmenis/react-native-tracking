@@ -18,6 +18,45 @@ type StoredTokens = {
   orgSlug?: string; // last successfully resolved org slug
 };
 
+type IdTokenClaims = {
+  given_name?: string;
+  family_name?: string;
+  preferred_username?: string;
+  email?: string;
+};
+
+/** Minimal base64url decoder (works on Hermes where atob is unavailable). */
+function base64UrlDecode(input: string): string {
+  const base64 = input.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  let result = "";
+  for (let i = 0; i < padded.length; i += 4) {
+    const a = chars.indexOf(padded[i]);
+    const b = chars.indexOf(padded[i + 1]);
+    const c = chars.indexOf(padded[i + 2]);
+    const d = chars.indexOf(padded[i + 3]);
+    if (a === -1 || b === -1) break;
+    const bytes = [(a << 2) | (b >> 4), ((b & 15) << 4) | (c >> 2), ((c & 3) << 6) | d];
+    result += String.fromCharCode(bytes[0]);
+    if (c !== -1) result += String.fromCharCode(bytes[1]);
+    if (d !== -1) result += String.fromCharCode(bytes[2]);
+  }
+  return result;
+}
+
+/** Decode the payload of a JWT id_token into its OIDC claims. */
+function decodeIdToken(idToken?: string): IdTokenClaims | null {
+  if (!idToken) return null;
+  try {
+    const payload = idToken.split(".")[1];
+    if (!payload) return null;
+    return JSON.parse(base64UrlDecode(payload)) as IdTokenClaims;
+  } catch {
+    return null;
+  }
+}
+
 function nowMs() {
   return Date.now();
 }
@@ -61,6 +100,18 @@ export function useAuth() {
   const [orgSlug, setOrgSlug] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [hasCachedRealm, setHasCachedRealm] = useState(false);
+
+  // Derive the user's display identity from the ID token's OIDC claims.
+  const idClaims = tokens ? decodeIdToken(tokens.idToken) : null;
+  const firstName = idClaims?.given_name ?? "";
+  const lastName = idClaims?.family_name ?? "";
+  const user = {
+    firstName,
+    lastName,
+    displayName: [firstName, lastName].filter(Boolean).join(" ") || "User",
+    initials:
+      (firstName[0] ?? "") + (lastName[0] ?? "") || (idClaims?.preferred_username?.[0] ?? "?"),
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -312,6 +363,7 @@ export function useAuth() {
     realm,
     tokens,
     orgSlug,
+    user,
     loading,
     hasCachedRealm,
     resolveRealm,

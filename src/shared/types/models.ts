@@ -8,14 +8,14 @@ export type AlarmStatus = 'open' | 'acknowledged' | 'resolved';
 export type Vehicle = {
   id: string;
   name: string;
-  plate: string;
-  driver: string;
+  type: string;
   meta: string;
   status: VehicleStatus;
   imei: string;
   latitude?: number;
   longitude?: number;
   heading?: number;
+  signal?: number;
   speed?: number;
   connected?: boolean;
   lastSeen?: string;

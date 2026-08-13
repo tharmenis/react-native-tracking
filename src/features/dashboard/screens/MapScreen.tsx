@@ -1,33 +1,49 @@
-import { AppIcon } from '../../../shared/components/AppIcon';
-import { DrawerScreenProps } from '@react-navigation/drawer';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { AppIcon } from "../../../shared/components/AppIcon";
+import { DrawerScreenProps } from "@react-navigation/drawer";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  Dimensions,
+  Animated,
+} from "react-native";
+import MapView, { Marker, PROVIDER_GOOGLE, Region } from "react-native-maps";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { DrawerParamList } from '../../../app/navigation/types';
-import { fetchVehicles } from '../../fleet/api/vehicles';
-import { VehicleMarker } from '../../../shared/components/VehicleMarker';
-import { colors, radius, shadows, spacing, typography } from '../../../shared/theme/theme';
-import { Vehicle } from '../../../shared/types/models';
+import { DrawerParamList } from "../../../app/navigation/types";
+import { fetchVehicles } from "../../fleet/api/vehicles";
+import { VehicleMarker } from "../../../shared/components/VehicleMarker";
+import { ZoomControls } from "../../../shared/components/ZoomControls";
+import {
+  colors,
+  radius,
+  shadows,
+  spacing,
+  typography,
+} from "../../../shared/theme/theme";
+import { Vehicle } from "../../../shared/types/models";
 
-type Props = DrawerScreenProps<DrawerParamList, 'LiveMap'>;
+type Props = DrawerScreenProps<DrawerParamList, "LiveMap">;
 
 const mapRefreshMs = 1500;
-const minDelta = 0.002;
-const maxDelta = 40;
 const vehicleSearchResultCount = 6;
 const mapProvider = PROVIDER_GOOGLE;
+const { height: screenHeight } = Dimensions.get("window");
+const PANEL_HEIGHT = screenHeight * 0.3;
 
-function markerColor(status: Vehicle['status']) {
+function markerColor(status: Vehicle["status"]) {
   switch (status) {
-    case 'alert':
+    case "alert":
       return colors.alert;
-    case 'idle':
+    case "idle":
       return colors.idle;
-    case 'off':
+    case "off":
       return colors.off;
-    case 'active':
+    case "active":
     default:
       return colors.blue600;
   }
@@ -37,8 +53,10 @@ export function MapScreen({ navigation }: Props) {
   const [vehicleItems, setVehicleItems] = useState<Vehicle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [notice, setNotice] = useState<string | null>(null);
-  const [vehicleSource, setVehicleSource] = useState<'remote' | 'mock' | 'error' | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [vehicleSource, setVehicleSource] = useState<
+    "remote" | "mock" | "error" | null
+  >(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isMapReady, setIsMapReady] = useState(false);
   const mapRef = useRef<MapView | null>(null);
@@ -49,6 +67,38 @@ export function MapScreen({ navigation }: Props) {
     latitudeDelta: 2.4,
     longitudeDelta: 2.4,
   });
+
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(
+    null,
+  );
+  const panelTranslateY = useRef(new Animated.Value(PANEL_HEIGHT)).current;
+
+  const suppressNextMapPress = useRef(false);
+
+  // Derive the live vehicle from the refreshed list so the panel values
+  // (speed, status, signal) update on each fetch.
+  const selectedVehicle = useMemo(
+    () =>
+      vehicleItems.find((vehicle) => vehicle.id === selectedVehicleId) ?? null,
+    [vehicleItems, selectedVehicleId],
+  );
+
+  function openVehiclePanel(vehicle: Vehicle) {
+    setSelectedVehicleId(vehicle.id);
+    Animated.timing(panelTranslateY, {
+      toValue: 0,
+      duration: 260,
+      useNativeDriver: true,
+    }).start();
+  }
+
+  function closeVehiclePanel() {
+    Animated.timing(panelTranslateY, {
+      toValue: PANEL_HEIGHT,
+      duration: 220,
+      useNativeDriver: true,
+    }).start(() => setSelectedVehicleId(null));
+  }
 
   useEffect(() => {
     const controller = new AbortController();
@@ -79,7 +129,12 @@ export function MapScreen({ navigation }: Props) {
   }
 
   const mappableVehicles = useMemo(
-    () => vehicleItems.filter((vehicle) => typeof vehicle.latitude === 'number' && typeof vehicle.longitude === 'number'),
+    () =>
+      vehicleItems.filter(
+        (vehicle) =>
+          typeof vehicle.latitude === "number" &&
+          typeof vehicle.longitude === "number",
+      ),
     [vehicleItems],
   );
 
@@ -91,25 +146,35 @@ export function MapScreen({ navigation }: Props) {
     }
 
     return mappableVehicles.filter((vehicle) => {
-      const haystack = [vehicle.name, vehicle.plate, vehicle.driver, vehicle.meta].join(' ').toLowerCase();
+      const haystack = [vehicle.name, vehicle.meta].join(" ").toLowerCase();
 
       return haystack.includes(normalizedQuery);
     });
   }, [mappableVehicles, searchQuery]);
 
-  const searchResults = useMemo(() => visibleVehicles.slice(0, vehicleSearchResultCount), [visibleVehicles]);
+  const searchResults = useMemo(
+    () => visibleVehicles.slice(0, vehicleSearchResultCount),
+    [visibleVehicles],
+  );
 
-  const statusCount = useMemo(() => ({
-    active: vehicleItems.filter((item) => item.status === 'active').length,
-    alert: vehicleItems.filter((item) => item.status === 'alert').length,
-    idle: vehicleItems.filter((item) => item.status === 'idle').length,
-    off: vehicleItems.filter((item) => item.status === 'off').length,
-  }), [vehicleItems]);
+  const statusCount = useMemo(
+    () => ({
+      active: vehicleItems.filter((item) => item.status === "active").length,
+      alert: vehicleItems.filter((item) => item.status === "alert").length,
+      idle: vehicleItems.filter((item) => item.status === "idle").length,
+      off: vehicleItems.filter((item) => item.status === "off").length,
+    }),
+    [vehicleItems],
+  );
 
   const initialRegion = useMemo(() => {
     const firstVehicle = mappableVehicles[0];
 
-    if (!firstVehicle || firstVehicle.latitude === undefined || firstVehicle.longitude === undefined) {
+    if (
+      !firstVehicle ||
+      firstVehicle.latitude === undefined ||
+      firstVehicle.longitude === undefined
+    ) {
       return {
         latitude: -1.286389,
         longitude: 36.817223,
@@ -168,17 +233,6 @@ export function MapScreen({ navigation }: Props) {
     );
   }, [isMapReady, mappableVehicles]);
 
-  function zoomBy(factor: number) {
-    const nextRegion: Region = {
-      ...regionRef.current,
-      latitudeDelta: Math.min(maxDelta, Math.max(minDelta, regionRef.current.latitudeDelta * factor)),
-      longitudeDelta: Math.min(maxDelta, Math.max(minDelta, regionRef.current.longitudeDelta * factor)),
-    };
-
-    regionRef.current = nextRegion;
-    mapRef.current?.animateToRegion(nextRegion, 220);
-  }
-
   function zoomToVehicle(vehicle: Vehicle) {
     if (vehicle.latitude === undefined || vehicle.longitude === undefined) {
       return;
@@ -198,7 +252,7 @@ export function MapScreen({ navigation }: Props) {
   }
 
   return (
-    <SafeAreaView edges={['top']} style={styles.safeArea}>
+    <SafeAreaView edges={["top"]} style={styles.safeArea}>
       <View style={styles.container}>
         <MapView
           initialRegion={initialRegion}
@@ -213,14 +267,33 @@ export function MapScreen({ navigation }: Props) {
           showsCompass={false}
           showsMyLocationButton={false}
           style={styles.map}
+          onPress={() =>{
+            if (suppressNextMapPress.current) {
+              suppressNextMapPress.current = false;
+              return;
+            }
+            closeVehiclePanel();  
+          }}
         >
           {mappableVehicles.map((vehicle) => (
             <VehicleMarker
               key={vehicle.id}
-              coordinate={{ latitude: vehicle.latitude!, longitude: vehicle.longitude! }}
+              onPress={() => {
+                openVehiclePanel(vehicle);
+                suppressNextMapPress.current = true;
+              }}
+              coordinate={{
+                latitude: vehicle.latitude!,
+                longitude: vehicle.longitude!,
+              }}
               heading={vehicle.heading}
-              title={`${vehicle.name} (${vehicle.plate})`}
-              description={`${vehicle.driver} · ${vehicle.meta}`}
+              variant={
+                vehicle.id === selectedVehicleId
+                  ? 'selected'
+                  : vehicle.status === 'off'
+                    ? 'inactive'
+                    : 'default'
+              }
             />
           ))}
         </MapView>
@@ -245,7 +318,7 @@ export function MapScreen({ navigation }: Props) {
                 value={searchQuery}
               />
               {searchQuery.length > 0 ? (
-                <Pressable hitSlop={8} onPress={() => setSearchQuery('')}>
+                <Pressable hitSlop={8} onPress={() => setSearchQuery("")}>
                   <AppIcon color={colors.gray500} name="cancel" size={18} />
                 </Pressable>
               ) : null}
@@ -255,19 +328,36 @@ export function MapScreen({ navigation }: Props) {
               <View style={styles.searchResults}>
                 {searchResults.length > 0 ? (
                   searchResults.map((vehicle) => (
-                    <Pressable key={vehicle.id} onPress={() => zoomToVehicle(vehicle)} style={styles.searchResultItem}>
-                      <View style={[styles.searchResultDot, { backgroundColor: markerColor(vehicle.status) }]} />
+                    <Pressable
+                      key={vehicle.id}
+                      onPress={() => zoomToVehicle(vehicle)}
+                      style={styles.searchResultItem}
+                    >
+                      <View
+                        style={[
+                          styles.searchResultDot,
+                          { backgroundColor: markerColor(vehicle.status) },
+                        ]}
+                      />
                       <View style={styles.searchResultBody}>
-                        <Text numberOfLines={1} style={styles.searchResultTitle}>{vehicle.name}</Text>
-                        <Text numberOfLines={1} style={styles.searchResultSubtitle}>
-                          {vehicle.plate} · {vehicle.driver}
+                        <Text
+                          numberOfLines={1}
+                          style={styles.searchResultTitle}
+                        >
+                          {vehicle.name}
                         </Text>
+                        <Text
+                          numberOfLines={1}
+                          style={styles.searchResultSubtitle}
+                        ></Text>
                       </View>
                     </Pressable>
                   ))
                 ) : (
                   <View style={styles.searchEmptyState}>
-                    <Text style={styles.searchEmptyText}>No vehicles match that search.</Text>
+                    <Text style={styles.searchEmptyText}>
+                      No vehicles match that search.
+                    </Text>
                   </View>
                 )}
               </View>
@@ -289,42 +379,46 @@ export function MapScreen({ navigation }: Props) {
           </View>
         ) : null}
 
-        <View style={styles.zoomControls}>
-          <Pressable onPress={() => zoomBy(0.5)} style={styles.zoomButton}>
-            <AppIcon color={colors.blue600} name="add" size={20} />
-          </Pressable>
-          <View style={styles.zoomDivider} />
-          <Pressable onPress={() => zoomBy(2)} style={styles.zoomButton}>
-            <AppIcon color={colors.blue600} name="remove" size={20} />
-          </Pressable>
-        </View>
+        <ZoomControls mapRef={mapRef} />
 
         {__DEV__ ? (
           <View style={styles.debugBanner}>
-            <Text style={styles.debugText}>mapReady: {isMapReady ? 'yes' : 'no'}</Text>
-            <Text style={styles.debugText}>vehicles: {vehicleItems.length}</Text>
-            <Text style={styles.debugText}>mappable: {mappableVehicles.length}</Text>
-            <Text style={styles.debugText}>visible: {visibleVehicles.length}</Text>
-            <Text style={styles.debugText}>source: {vehicleSource ?? 'n/a'}</Text>
+            <Text style={styles.debugText}>
+              mapReady: {isMapReady ? "yes" : "no"}
+            </Text>
+            <Text style={styles.debugText}>
+              vehicles: {vehicleItems.length}
+            </Text>
+            <Text style={styles.debugText}>
+              mappable: {mappableVehicles.length}
+            </Text>
+            <Text style={styles.debugText}>
+              visible: {visibleVehicles.length}
+            </Text>
+            <Text style={styles.debugText}>
+              source: {vehicleSource ?? "n/a"}
+            </Text>
           </View>
         ) : null}
 
         <View style={styles.statBar}>
           <View style={styles.statItem}>
-            <View style={[styles.statDot, { backgroundColor: colors.active }]} />
+            <View
+              style={[styles.statDot, { backgroundColor: colors.active }]}
+            />
             <Text style={styles.statNumber}>{statusCount.active}</Text>
             <Text style={styles.statLabel}>Active</Text>
           </View>
-          <View style={styles.statItem}>
+          {/* <View style={styles.statItem}>
             <View style={[styles.statDot, { backgroundColor: colors.alert }]} />
             <Text style={styles.statNumber}>{statusCount.alert}</Text>
             <Text style={styles.statLabel}>Alerts</Text>
-          </View>
-          <View style={styles.statItem}>
+          </View> */}
+          {/* <View style={styles.statItem}>
             <View style={[styles.statDot, { backgroundColor: colors.idle }]} />
             <Text style={styles.statNumber}>{statusCount.idle}</Text>
             <Text style={styles.statLabel}>Idle</Text>
-          </View>
+          </View> */}
           <View style={styles.statItem}>
             <View style={[styles.statDot, { backgroundColor: colors.off }]} />
             <Text style={styles.statNumber}>{statusCount.off}</Text>
@@ -332,6 +426,82 @@ export function MapScreen({ navigation }: Props) {
           </View>
         </View>
       </View>
+
+      {selectedVehicle ? (
+        <Animated.View
+          style={[
+            styles.vehiclePanel,
+            { transform: [{ translateY: panelTranslateY }] },
+          ]}
+        >
+          <View style={styles.panelHandle} />
+          <View style={styles.panelHeader}>
+            <Text style={styles.panelTitle}>{selectedVehicle.name}</Text>
+            <Pressable hitSlop={8} onPress={closeVehiclePanel}>
+              <AppIcon color={colors.gray500} name="cancel" size={20} />
+            </Pressable>
+          </View>
+          <Text style={styles.panelSubtitle}>
+            {/* {selectedVehicle.meta || 'Vehicle'} */}
+          </Text>
+          <View style={styles.panelStats}>
+            <View style={styles.panelStat}>
+              <Text style={styles.panelStatValue}>
+                {selectedVehicle.speed ?? '—'} km/h
+              </Text>
+              <Text style={styles.panelStatLabel}>Speed </Text>
+            </View>
+            <View style={styles.panelStat}>
+              <View style={styles.panelStatusRow}>
+                <View
+                  style={[
+                    styles.panelStatusDot,
+                    {
+                      backgroundColor:
+                        selectedVehicle.status === 'active'
+                          ? colors.activeText
+                          : markerColor(selectedVehicle.status),
+                    },
+                  ]}
+                />
+                <Text
+                  style={[
+                    styles.panelStatValue,
+                    // { color: markerColor(selectedVehicle.status) },
+                  ]}
+                >
+                  {selectedVehicle.status.toUpperCase()}
+                </Text>
+              </View>
+              <Text style={styles.panelStatLabel}>Status</Text>
+            </View>
+            <View style={styles.panelStat}>
+              <View style={styles.signalBars}>
+                {[1, 2, 3, 4, 5].map((bar) => {
+                  const isActive = bar <= (selectedVehicle.signal ?? 0);
+                  const color = isActive
+                    ? (selectedVehicle.signal ?? 0) > 3
+                      ? colors.activeText
+                      : (selectedVehicle.signal ?? 0) === 3
+                        ? colors.idle
+                        : colors.alert
+                    : colors.gray200;
+                  return (
+                    <View
+                      key={bar}
+                      style={[
+                        styles.signalBar,
+                        { height: 6 + bar * 3, backgroundColor: color },
+                      ]}
+                    />
+                  );
+                })}
+              </View>
+              <Text style={styles.panelStatLabel}>Signal</Text>
+            </View>
+          </View>
+        </Animated.View>
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -340,21 +510,21 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: colors.gray50,
     flex: 1,
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   loadingOverlay: {
     ...shadows.card,
-    alignItems: 'center',
-    alignSelf: 'center',
+    alignItems: "center",
+    alignSelf: "center",
     backgroundColor: colors.white,
     borderRadius: radius.md,
     bottom: 118,
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.sm,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    position: 'absolute',
+    position: "absolute",
   },
   loadingText: {
     color: colors.gray700,
@@ -365,53 +535,53 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   debugBanner: {
-    backgroundColor: 'rgba(24, 95, 165, 0.88)',
+    backgroundColor: "rgba(24, 95, 165, 0.88)",
     borderRadius: radius.md,
     bottom: 92,
     gap: 2,
     maxWidth: 220,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    position: 'absolute',
+    position: "absolute",
     right: spacing.lg,
     zIndex: 4,
   },
   debugText: {
     color: colors.white,
     fontSize: typography.tiny,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   mapHeader: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
+    alignItems: "flex-start",
+    flexDirection: "row",
     gap: spacing.md,
     left: spacing.lg,
-    position: 'absolute',
+    position: "absolute",
     right: spacing.lg,
     top: spacing.lg,
     zIndex: 4,
   },
   menuButton: {
     ...shadows.card,
-    alignItems: 'center',
+    alignItems: "center",
     backgroundColor: colors.white,
     borderRadius: radius.md,
     height: 44,
-    justifyContent: 'center',
+    justifyContent: "center",
     width: 44,
   },
   noticeBanner: {
-    alignItems: 'center',
+    alignItems: "center",
     backgroundColor: colors.blue50,
     borderColor: colors.blue100,
     borderRadius: radius.md,
     borderWidth: 1,
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.sm,
     left: spacing.lg,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    position: 'absolute',
+    position: "absolute",
     right: spacing.lg,
     top: 84,
     zIndex: 4,
@@ -427,7 +597,7 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     flex: 1,
-    position: 'relative',
+    position: "relative",
   },
   searchEmptyState: {
     paddingHorizontal: spacing.md,
@@ -439,10 +609,10 @@ const styles = StyleSheet.create({
   },
   searchField: {
     ...shadows.card,
-    alignItems: 'center',
+    alignItems: "center",
     backgroundColor: colors.white,
     borderRadius: radius.xl,
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.sm,
     height: 44,
     paddingHorizontal: spacing.lg,
@@ -462,7 +632,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginTop: spacing.sm,
     maxHeight: 256,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   searchResultBody: {
     flex: 1,
@@ -474,8 +644,8 @@ const styles = StyleSheet.create({
     width: 10,
   },
   searchResultItem: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
+    alignItems: "flex-start",
+    flexDirection: "row",
     gap: spacing.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
@@ -488,19 +658,19 @@ const styles = StyleSheet.create({
   searchResultTitle: {
     color: colors.gray900,
     fontSize: typography.body,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   statBar: {
     ...shadows.card,
     backgroundColor: colors.white,
     borderRadius: radius.lg,
     bottom: spacing.xxxl,
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.lg,
     left: spacing.lg,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    position: 'absolute',
+    position: "absolute",
   },
   statDot: {
     borderRadius: 4,
@@ -508,8 +678,8 @@ const styles = StyleSheet.create({
     width: 8,
   },
   statItem: {
-    alignItems: 'center',
-    flexDirection: 'row',
+    alignItems: "center",
+    flexDirection: "row",
     gap: 6,
   },
   statLabel: {
@@ -519,28 +689,89 @@ const styles = StyleSheet.create({
   statNumber: {
     color: colors.gray900,
     fontSize: typography.body,
-    fontWeight: '700',
+    fontWeight: "700",
   },
-  zoomButton: {
-    alignItems: 'center',
-    height: 40,
-    justifyContent: 'center',
-    width: 40,
-  },
-  zoomControls: {
+  vehiclePanel: {
     ...shadows.card,
     backgroundColor: colors.white,
-    borderRadius: radius.lg,
-    gap: spacing.xs,
-    padding: spacing.xs,
-    position: 'absolute',
-    right: spacing.lg,
-    top: 150,
-    zIndex: 4,
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+    bottom: 0,
+    height: PANEL_HEIGHT,
+    left: 0,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    position: "absolute",
+    right: 0,
+    zIndex: 5,
   },
-  zoomDivider: {
+  panelHandle: {
+    alignSelf: "center",
     backgroundColor: colors.gray200,
-    height: 1,
-    marginHorizontal: spacing.xs,
+    borderRadius: 2,
+    height: 4,
+    marginBottom: spacing.md,
+    width: 36,
+  },
+  panelHeader: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  panelTitle: {
+    color: colors.gray900,
+    fontSize: typography.body,
+    fontWeight: "700",
+  },
+  panelSubtitle: {
+    color: colors.gray500,
+    fontSize: typography.caption,
+    marginTop: 2,
+  },
+  panelStats: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: spacing.lg,
+    borderTopColor: colors.gray50,
+    borderTopWidth: 1,
+    paddingTop: spacing.lg,
+    borderBottomColor: colors.gray50,
+    borderBottomWidth: 1,
+    paddingBottom: spacing.lg,
+  },
+  panelStat: {
+    alignItems: "center",
+    flex: 1,
+  },
+  panelStatValue: {
+    color: colors.gray900,
+    fontSize: typography.heading,
+    fontWeight: "700",
+  },
+  panelStatLabel: {
+    color: colors.gray500,
+    fontSize: typography.caption,
+    marginTop: spacing.xs,
+  },
+  panelStatusRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.xs,
+  },
+  panelStatusDot: {
+    borderRadius: 5,
+    height: 10,
+    width: 10,
+  },
+  signalBars: {
+    alignItems: "flex-end",
+    flexDirection: "row",
+    gap: 3,
+    height: 22,
+    justifyContent: "center",
+  },
+  signalBar: {
+    borderRadius: 2,
+    width: 4,
   },
 });
