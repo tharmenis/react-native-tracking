@@ -10,7 +10,8 @@
       "Shell(curl -s -m 8 -o /dev/null -w \"%{http_code}\" http://localhost:3000/health 2>&1; echo \" <- localhost:3000/health\"; echo \"---\"; curl -s -m 8 -o /dev/null -w \"%{http_code}\" http://10.0.2.2:3000/ 2>&1; echo \" <- 10.0.2.2:3000/\")",
       "Shell(curl -s -m 8 http://localhost:3000/auth/resolve-realm -X POST -H Content-Type: application/json -d {\"orgSlug\":\"test\"} 2 >& 1)",
       "Shell(adb shell pm clear com.android.chrome 2>&1; echo \"exit: $?\")",
-      "Shell(grep -rn \"assetExts\\|sourceExts\\|transformer\" babel.config.js metro.config.js app.config.ts 2>/dev/null; echo \"--- metro config? ---\"; ls metro.config.js 2>/dev/null || echo \"no metro.config.js (Expo default)\")"
+      "Shell(grep -rn \"assetExts\\|sourceExts\\|transformer\" babel.config.js metro.config.js app.config.ts 2>/dev/null; echo \"--- metro config? ---\"; ls metro.config.js 2>/dev/null || echo \"no metro.config.js (Expo default)\")",
+      "Shell(sed:*)"
     ],
     "deny": [],
     "defaultMode": "default"
