@@ -272,6 +272,7 @@ export function useAuth() {
           );
           const logoutRes = await fetch(endUrl, {
             method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
             body: body.toString(),
           });
           console.log("[logout] end_session status:", logoutRes.status);

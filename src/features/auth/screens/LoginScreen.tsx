@@ -266,6 +266,7 @@ const styles = StyleSheet.create({
   pill: {
     width: "100%",
     alignItems: "center",
+    justifyContent:"center",
     alignSelf: "flex-start",
     backgroundColor: colors.blue50,
     borderColor: colors.blue100,
@@ -273,22 +274,29 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     flexDirection: "row",
     gap: spacing.sm,
+    marginTop: spacing.sm,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
+  
   },
   pillText: {
     color: colors.blue600,
     fontSize: typography.body,
     fontWeight: "600",
+    textAlign: "center",
+    textTransform: "uppercase",
   },
   changeOrgButton: {
-    alignSelf: "flex-start",
-    marginTop: spacing.md,
+    alignSelf: "center",
+    marginTop: spacing.xl,
+    marginBottom: spacing.md,
     paddingVertical: spacing.xs,
   },
   changeOrgText: {
     color: colors.blue600,
     fontSize: typography.caption,
+    textAlign: "center",
+    width: "100%",
     textDecorationLine: "underline",
   },
   input: {
